@@ -17,7 +17,6 @@
 
 void app_main(void)
 {
-    ESP_ERROR_CHECK(i2c_master_init());
     lcd_init();
     pwm_timer_init(LEDC_LOW_SPEED_MODE,
                    LEDC_TIMER_0,
@@ -37,13 +36,14 @@ void app_main(void)
     static int last_adc_time = 0;
     while(1)
     {
-        if (esp_timer_get_time() - last_adc_time > 100) 
+        if (esp_timer_get_time() - last_adc_time > 100000) 
         {
             int vp = adc_read_raw(&adc1, &ch0);
+            uint32_t duty = (vp * 8191) / 4095;
             lcd_put_cur(0, 0);
             lcd_send_string("ADC CH0 : ");
-            lcd_send_int(vp);
-            ESP_LOGI("ADC", "CH0: %d", vp);
+            lcd_send_int(duty);
+            ESP_LOGI("ADC", "CH0: %d", duty);
             ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, vp));
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2));
 

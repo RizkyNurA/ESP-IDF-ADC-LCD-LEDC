@@ -100,6 +100,8 @@ static void lcd_send_nibble(uint8_t nibble)
 
 void lcd_init(void)
 {
+    ESP_ERROR_CHECK(i2c_master_init());
+    
     vTaskDelay(pdMS_TO_TICKS(50));
 
     lcd_send_nibble(0x30);
