@@ -12,11 +12,25 @@
 
 #include "i2c_lcd_driver.h"
 
+#include "hx711_driver.h"
+
 #define pin_led 2
 #define pin_potensio ADC_CHANNEL_0 //VP
+#define pin_sck_hx711 GPIO_NUM_5
+#define pin_dt_hx711 GPIO_NUM_4
 
 void app_main(void)
 {
+    hx711_t scale = {
+        .dout = pin_dt_hx711,
+        .pd_sck = pin_sck_hx711,
+        .gain = HX711_GAIN_A_128
+    };
+
+    ESP_ERROR_CHECK(hx711_init(&scale));
+
+    int32_t raw;
+
     lcd_init();
     pwm_timer_init(LEDC_LOW_SPEED_MODE,
                    LEDC_TIMER_0,
@@ -49,6 +63,23 @@ void app_main(void)
 
             last_adc_time = esp_timer_get_time();
         }
-        vTaskDelay(pdMS_TO_TICKS(10));
+
+        if (hx711_wait(&scale, 200) == ESP_OK)
+        {
+            if (hx711_read_data(&scale, &raw) == ESP_OK)
+            {
+                printf("RAW: %ld\n", raw);
+                lcd_put_cur(1, 0);
+                lcd_send_string("LOAD CELL :");
+                lcd_send_int(raw);
+            }
+        }
+        else
+        {
+            printf("Timeout\n");
+            lcd_put_cur(1, 0);
+            lcd_send_string("LOAD CELL : TIMEOUT");
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
