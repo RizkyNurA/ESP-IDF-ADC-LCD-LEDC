@@ -19,6 +19,9 @@
 #define pin_sck_hx711 GPIO_NUM_5
 #define pin_dt_hx711 GPIO_NUM_4
 
+#define interval_adc_potensio 100000
+#define interval_lcd 5000000
+
 void app_main(void)
 {
     hx711_t scale = {
@@ -48,7 +51,6 @@ void app_main(void)
     adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
 
     static int last_adc_time = 0;
-    static int last_load_cell_time = 0;
     static int last_lcd_time = 0;
     int vp = 0;
     uint32_t duty = 0;
@@ -56,7 +58,7 @@ void app_main(void)
 
     while(1)
     {
-        if (esp_timer_get_time() - last_adc_time > 100000) 
+        if (esp_timer_get_time() - last_adc_time > interval_adc_potensio) 
         {
             vp = adc_read_raw(&adc1, &ch0);
             duty = (vp * 8191) / 4095;
@@ -76,8 +78,8 @@ void app_main(void)
                 printf("RAW: %ld\n", raw);
             }
         }
-        
-        if (esp_timer_get_time() - last_lcd_time > 5000000)
+
+        if (esp_timer_get_time() - last_lcd_time > interval_lcd)
         {
             lcd_put_cur(0, 0);
             lcd_send_string("POT :");
@@ -89,6 +91,6 @@ void app_main(void)
         }
 
         
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
