@@ -14,16 +14,40 @@
 
 #include "hx711_driver.h"
 
-#define pin_led 2
+#include "push_button_driver.h"
+
+#define pin_led_1 2
+#define pin_led_2 19
 #define pin_potensio ADC_CHANNEL_0 //VP
 #define pin_sck_hx711 GPIO_NUM_5
 #define pin_dt_hx711 GPIO_NUM_4
+#define pin_button 23
 
 #define interval_adc_potensio 100000
 #define interval_lcd 5000000
 
+
+void GPIO_Initialation(){
+
+    gpio_reset_pin(pin_button);
+    gpio_set_direction(pin_button, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(pin_button, GPIO_PULLDOWN_ONLY);
+
+    gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
+    gpio_reset_pin(pin_led_2);
+    gpio_set_level(pin_led_2, 1);
+    
+
+}
+
 void app_main(void)
 {
+    button_config_t button_1_config = {
+        .debounce_time      = 20000,
+        .short_press_time   = 1000000,
+        .long_press_time    = 5000000
+    };
+
     hx711_t scale = {
         .dout = pin_dt_hx711,
         .pd_sck = pin_sck_hx711,
@@ -40,7 +64,7 @@ void app_main(void)
                    LEDC_TIMER_13_BIT,
                    4000,
                    LEDC_AUTO_CLK);
-    pwm_channel_init(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, LEDC_TIMER_0, pin_led, 4000);
+    pwm_channel_init(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, LEDC_TIMER_0, pin_led_1, 4000);
     
     adc_unit_handle_custom_t adc1;
 
@@ -50,6 +74,7 @@ void app_main(void)
 
     adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
 
+    button_t button_1_state = { .state = BTN_IDLE };
     static int last_adc_time = 0;
     static int last_lcd_time = 0;
     int vp = 0;
@@ -58,12 +83,21 @@ void app_main(void)
 
     while(1)
     {
+        edge_t edge = gpio_detect_edge(pin_led_2);
+        if (edge == EDGE_RISING) 
+        {
+            gpio_set_level(pin_led_2, 1);
+        }
+        else if (edge == EDGE_FALLING)
+        {
+            gpio_set_level(pin_led_2, 0);
+        }
         if (esp_timer_get_time() - last_adc_time > interval_adc_potensio) 
         {
             vp = adc_read_raw(&adc1, &ch0);
             duty = (vp * 8191) / 4095;
             ESP_LOGI("ADC", "CH0: %d", duty);
-            ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, vp));
+            ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty));
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2));
 
             last_adc_time = esp_timer_get_time();
@@ -88,6 +122,7 @@ void app_main(void)
             lcd_put_cur(1, 0);
             lcd_send_string("LC  :");
             lcd_send_int(raw);
+            last_lcd_time = esp_timer_get_time();
         }
 
         
