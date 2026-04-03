@@ -48,15 +48,18 @@ void app_main(void)
     adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
 
     static int last_adc_time = 0;
+    static int last_load_cell_time = 0;
+    static int last_lcd_time = 0;
+    int vp = 0;
+    uint32_t duty = 0;
+    bool ready;
+
     while(1)
     {
         if (esp_timer_get_time() - last_adc_time > 100000) 
         {
-            int vp = adc_read_raw(&adc1, &ch0);
-            uint32_t duty = (vp * 8191) / 4095;
-            lcd_put_cur(0, 0);
-            lcd_send_string("ADC CH0 : ");
-            lcd_send_int(duty);
+            vp = adc_read_raw(&adc1, &ch0);
+            duty = (vp * 8191) / 4095;
             ESP_LOGI("ADC", "CH0: %d", duty);
             ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, vp));
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2));
@@ -64,22 +67,28 @@ void app_main(void)
             last_adc_time = esp_timer_get_time();
         }
 
-        if (hx711_wait(&scale, 200) == ESP_OK)
+        hx711_is_ready(&scale, &ready);
+
+        if (ready)
         {
             if (hx711_read_data(&scale, &raw) == ESP_OK)
             {
                 printf("RAW: %ld\n", raw);
-                lcd_put_cur(1, 0);
-                lcd_send_string("LOAD CELL :");
-                lcd_send_int(raw);
             }
         }
-        else
+        
+        if (esp_timer_get_time() - last_lcd_time > 5000000)
         {
-            printf("Timeout\n");
+            lcd_put_cur(0, 0);
+            lcd_send_string("POT :");
+            lcd_send_int(duty);
+            
             lcd_put_cur(1, 0);
-            lcd_send_string("LOAD CELL : TIMEOUT");
+            lcd_send_string("LC  :");
+            lcd_send_int(raw);
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+
+        
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
