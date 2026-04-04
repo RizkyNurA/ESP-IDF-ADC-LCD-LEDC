@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "esp_pm.h"
@@ -25,6 +26,34 @@
 
 #define interval_adc_potensio 100000
 #define interval_lcd 5000000
+
+void blink_task_1(void *pvParameters)
+{
+    gpio_reset_pin(pin_led_1);
+    gpio_set_direction(pin_led_1, GPIO_MODE_OUTPUT);
+
+    while(1)
+    {
+        gpio_set_level(pin_led_1, 1);
+        vTaskDelay(pdMS_TO_TICKS(500));
+        gpio_set_level(pin_led_1, 0);
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+void blink_task_2(void *pvParameters)
+{
+    gpio_reset_pin(pin_led_2);
+    gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
+
+    while(1)
+    {
+        gpio_set_level(pin_led_2, 1);
+        vTaskDelay(pdMS_TO_TICKS(200));
+        gpio_set_level(pin_led_2, 0);
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
 
 
 void GPIO_Initialation(){
