@@ -61,9 +61,9 @@ void GPIO_Initialation(){
     gpio_reset_pin(pin_button);
     gpio_set_direction(pin_button, GPIO_MODE_INPUT);
     gpio_set_pull_mode(pin_button, GPIO_PULLDOWN_ONLY);
-
-    gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
+    
     gpio_reset_pin(pin_led_2);
+    gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
     gpio_set_level(pin_led_2, 1);
     
 
@@ -71,6 +71,8 @@ void GPIO_Initialation(){
 
 void app_main(void)
 {
+    GPIO_Initialation();
+
     button_config_t button_1_config = {
         .debounce_time      = 20000,
         .short_press_time   = 1000000,
@@ -112,7 +114,7 @@ void app_main(void)
 
     while(1)
     {
-        edge_t edge = gpio_detect_edge(pin_led_2);
+        edge_t edge = gpio_detect_edge(pin_button);
         if (edge == EDGE_RISING) 
         {
             gpio_set_level(pin_led_2, 1);
@@ -138,7 +140,7 @@ void app_main(void)
         {
             if (hx711_read_data(&scale, &raw) == ESP_OK)
             {
-                printf("RAW: %ld\n", raw);
+                ESP_LOGI("RAW", "%d", raw);
             }
         }
 
