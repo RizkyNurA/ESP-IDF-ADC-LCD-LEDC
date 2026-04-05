@@ -118,7 +118,7 @@ void lcd_task(void *pv)
         lcd_send_string("LC  :");
         lcd_send_int(raw);
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
@@ -163,4 +163,5 @@ void app_main(void)
     xTaskCreate(lcd_task, "lcd", 4096, NULL, 3, NULL);
     xTaskCreate(led_task, "led", 1024, NULL, 2, NULL);
     
+    vTaskDelete(NULL);
 }
