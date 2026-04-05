@@ -74,9 +74,9 @@ void app_main(void)
     GPIO_Initialation();
 
     button_config_t button_1_config = {
-        .debounce_time      = 20000,
-        .short_press_time   = 1000000,
-        .long_press_time    = 5000000
+        .debounce_time      = 10000,
+        .short_press_time   = 50000,
+        .long_press_time    = 1000000    
     };
 
     hx711_t scale = {
@@ -111,18 +111,30 @@ void app_main(void)
     int vp = 0;
     uint32_t duty = 0;
     bool ready;
+    bool toggle_state = 0;
 
     while(1)
     {
-        edge_t edge = gpio_detect_edge(pin_button);
-        if (edge == EDGE_RISING) 
+
+        press_type_t event =  button_update(&button_1_state, pin_button, &button_1_config);
+        if (event == PRESS_SHORT) {
+            ESP_LOGI("BTN", "SHORT");
+            toggle_state = !toggle_state;
+        }
+        else if (event == PRESS_LONG) {
+            ESP_LOGI("BTN", "LONG");
+            toggle_state = 0;
+        }
+
+        if(toggle_state)
         {
             gpio_set_level(pin_led_2, 1);
         }
-        else if (edge == EDGE_FALLING)
+        else 
         {
             gpio_set_level(pin_led_2, 0);
         }
+
         if (esp_timer_get_time() - last_adc_time > interval_adc_potensio) 
         {
             vp = adc_read_raw(&adc1, &ch0);
@@ -140,7 +152,7 @@ void app_main(void)
         {
             if (hx711_read_data(&scale, &raw) == ESP_OK)
             {
-                ESP_LOGI("RAW", "%d", raw);
+                //ESP_LOGI("RAW", "%d", raw);
             }
         }
 
