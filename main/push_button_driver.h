@@ -41,6 +41,11 @@ typedef struct {
     void (*callback)(press_type_t event); // memisahkan event
 } button_ctx_t;
 
+typedef struct {
+    button_ctx_t *buttons;
+    int count;
+} button_group_t;
+
 press_type_t button_update(button_t *btn,
                            gpio_num_t pin,
                            const button_config_t *cfg);

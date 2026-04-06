@@ -75,24 +75,26 @@ void right_button_handler(press_type_t event)
 
 void button_task(void *pv)
 {
-    button_ctx_t *buttons = (button_ctx_t *)pv;
+    button_group_t *grp = (button_group_t *)pv;
+
     while (1)
     {
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < grp->count; i++)
         {
             press_type_t event = button_update(
-                &buttons[i].state,
-                buttons[i].pin,
-                &buttons[i].cfg
+                &grp->buttons[i].state,
+                grp->buttons[i].pin,
+                &grp->buttons[i].cfg
             );
 
-            if (event == PRESS_SHORT) {
-                toggle_state = !toggle_state;
+            if (event != PRESS_NONE && grp->buttons[i].callback != NULL) {
+                grp->buttons[i].callback(event);
             }
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+    
 }
 
 void adc_task(void *pv)
@@ -197,7 +199,14 @@ void app_main(void)
     {pin_button_right, {.state = BTN_IDLE}, cfg, right_button_handler}
     };
 
-    xTaskCreate(button_task, "btn", 2048, buttons, 5, NULL);
+    uint8_t button_count = sizeof(buttons) / sizeof(button_ctx_t);
+
+    button_group_t btn_group = {
+    .buttons = buttons,
+    .count = button_count
+    };
+
+    xTaskCreate(button_task, "btn", 2048, &btn_group, 5, NULL);
     xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
     xTaskCreate(hx711_task, "hx", 2048, &scale, 5, NULL);
     xTaskCreate(lcd_task, "lcd", 4096, NULL, 3, NULL);
