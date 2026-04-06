@@ -17,12 +17,16 @@
 
 #include "push_button_driver.h"
 
-#define pin_led_1 2
-#define pin_led_2 19
 #define pin_potensio ADC_CHANNEL_0 //VP
 #define pin_sck_hx711 GPIO_NUM_5
 #define pin_dt_hx711 GPIO_NUM_4
-#define pin_button 23
+
+#define pin_led_1 GPIO_NUM_2
+#define pin_led_2 GPIO_NUM_19
+
+#define pin_button_left GPIO_NUM_35
+#define pin_button_center GPIO_NUM_34
+#define pin_button_right GPIO_NUM_32
 
 #define interval_adc_potensio 100000
 #define interval_lcd 5000000
@@ -33,9 +37,8 @@ volatile bool toggle_state = 0;
 
 void GPIO_Initialation()
 {
-    gpio_reset_pin(pin_button);
-    gpio_set_direction(pin_button, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(pin_button, GPIO_PULLDOWN_ONLY);
+    gpio_reset_pin(pin_button_left);
+    gpio_set_direction(pin_button_left, GPIO_MODE_INPUT);
     
     gpio_reset_pin(pin_led_2);
     gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
@@ -55,7 +58,7 @@ void button_task(void *pv)
 
     while (1)
     {
-        press_type_t event = button_update(&state, pin_button, &cfg);
+        press_type_t event = button_update(&state, pin_button_left, &cfg);
 
         if (event == PRESS_SHORT) {
             toggle_state = !toggle_state;
