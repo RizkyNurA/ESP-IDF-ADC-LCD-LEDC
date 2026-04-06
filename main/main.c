@@ -24,9 +24,9 @@
 #define pin_led_1 GPIO_NUM_2
 #define pin_led_2 GPIO_NUM_19
 
-#define pin_button_left GPIO_NUM_35
-#define pin_button_center GPIO_NUM_34
-#define pin_button_right GPIO_NUM_32
+#define pin_button_left GPIO_NUM_32
+#define pin_button_center GPIO_NUM_35
+#define pin_button_right GPIO_NUM_34
 
 #define interval_adc_potensio 100000
 #define interval_lcd 5000000
@@ -39,6 +39,12 @@ void GPIO_Initialation()
 {
     gpio_reset_pin(pin_button_left);
     gpio_set_direction(pin_button_left, GPIO_MODE_INPUT);
+
+    gpio_reset_pin(pin_button_center);
+    gpio_set_direction(pin_button_center, GPIO_MODE_INPUT);
+
+    gpio_reset_pin(pin_button_right);
+    gpio_set_direction(pin_button_right, GPIO_MODE_INPUT);
     
     gpio_reset_pin(pin_led_2);
     gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
@@ -46,25 +52,43 @@ void GPIO_Initialation()
     
 }
 
+void left_button_handler(press_type_t event)
+{
+    if (event == PRESS_SHORT) {
+        toggle_state = !toggle_state;
+    }
+}
+
+void center_button_handler(press_type_t event)
+{
+    if (event == PRESS_SHORT) {
+        toggle_state = 1;
+    }
+}
+
+void right_button_handler(press_type_t event)
+{
+    if (event == PRESS_SHORT) {
+        toggle_state = 0;
+    }
+}
+
 void button_task(void *pv)
 {
-    button_config_t cfg = {
-        .debounce_time = 10000,
-        .short_press_time = 50000,
-        .long_press_time = 1000000
-    };
-
-    button_t state = { .state = BTN_IDLE };
-
+    button_ctx_t *buttons = (button_ctx_t *)pv;
     while (1)
     {
-        press_type_t event = button_update(&state, pin_button_left, &cfg);
+        for (int i = 0; i < 3; i++)
+        {
+            press_type_t event = button_update(
+                &buttons[i].state,
+                buttons[i].pin,
+                &buttons[i].cfg
+            );
 
-        if (event == PRESS_SHORT) {
-            toggle_state = !toggle_state;
-        }
-        else if (event == PRESS_LONG) {
-            toggle_state = 0;
+            if (event == PRESS_SHORT) {
+                toggle_state = !toggle_state;
+            }
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -159,8 +183,21 @@ void app_main(void)
                     LEDC_TIMER_0, 
                     pin_led_1, 
                     4000);
+                    
 
-    xTaskCreate(button_task, "btn", 2048, NULL, 5, NULL);
+    button_config_t cfg = {
+        .debounce_time = 10000,
+        .short_press_time = 50000,
+        .long_press_time = 1000000
+    };
+
+    button_ctx_t buttons[] = {
+    {pin_button_left, {.state = BTN_IDLE}, cfg, left_button_handler},
+    {pin_button_center, {.state = BTN_IDLE}, cfg, center_button_handler},
+    {pin_button_right, {.state = BTN_IDLE}, cfg, right_button_handler}
+    };
+
+    xTaskCreate(button_task, "btn", 2048, buttons, 5, NULL);
     xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
     xTaskCreate(hx711_task, "hx", 2048, &scale, 5, NULL);
     xTaskCreate(lcd_task, "lcd", 4096, NULL, 3, NULL);

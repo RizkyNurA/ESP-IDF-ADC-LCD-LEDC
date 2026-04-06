@@ -34,6 +34,13 @@ typedef struct {
     int64_t timestamp;
 } button_t;
 
+typedef struct {
+    gpio_num_t pin;          // nomor GPIO
+    button_t state;          // state machine tombol
+    button_config_t cfg;     // konfigurasi timing (debounce)
+    void (*callback)(press_type_t event); // memisahkan event
+} button_ctx_t;
+
 press_type_t button_update(button_t *btn,
                            gpio_num_t pin,
                            const button_config_t *cfg);
