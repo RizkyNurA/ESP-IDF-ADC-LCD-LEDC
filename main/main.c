@@ -47,9 +47,17 @@ typedef struct {
     bool edit_mode;       // ganti lcd_cursor.active
 } app_state_t;
 
+typedef enum {
+    EVT_LEFT,
+    EVT_RIGHT,
+    EVT_CENTER_SHORT,
+    EVT_CENTER_LONG
+} app_event_t;
+
 static app_state_t app = {0};
 
 SemaphoreHandle_t app_mutex;
+QueueHandle_t app_queue;
 
 volatile bool toggle_state = 0;
 
@@ -92,7 +100,7 @@ void GPIO_Initialation()
     
 }
 
-void left_button_handler(press_type_t event) 
+void left_button_handler_lawas(press_type_t event) 
 {
     if (event != PRESS_SHORT) return;
 
@@ -133,7 +141,7 @@ void left_button_handler(press_type_t event)
     xSemaphoreGive(app_mutex);
 }
 
-void right_button_handler(press_type_t event) 
+void right_button_handler_lawas(press_type_t event) 
 {
     if (event != PRESS_SHORT) return;
 
@@ -176,7 +184,7 @@ void right_button_handler(press_type_t event)
     xSemaphoreGive(app_mutex);
 }
 
-void center_button_handler(press_type_t event) 
+void center_button_handler_lawas(press_type_t event)
 {
     if (event == PRESS_SHORT) 
     {
@@ -195,6 +203,117 @@ void center_button_handler(press_type_t event)
 
         // save di luar mutex (PENTING)
         save_editor_value(value);
+    }
+}
+
+void left_button_handler(press_type_t event) 
+{
+    if (event != PRESS_SHORT) return;
+
+    app_event_t evt = EVT_LEFT;
+    xQueueSend(app_queue, &evt, 0);
+}
+
+void right_button_handler(press_type_t event) 
+{
+    if (event != PRESS_SHORT) return;
+
+    app_event_t evt = EVT_RIGHT;
+    xQueueSend(app_queue, &evt, 0);
+}
+
+void center_button_handler(press_type_t event) 
+{
+    app_event_t evt;
+
+    if (event == PRESS_SHORT) {
+        evt = EVT_CENTER_SHORT;
+    } 
+    else if (event == PRESS_VERY_LONG) {
+        evt = EVT_CENTER_LONG;
+    } 
+    else {
+        return;
+    }
+
+    xQueueSend(app_queue, &evt, 0);
+}
+
+void app_task(void *pv)
+{
+    app_event_t evt;
+
+    while (1)
+    {
+        if (xQueueReceive(app_queue, &evt, portMAX_DELAY))
+        {
+            xSemaphoreTake(app_mutex, portMAX_DELAY);
+
+            switch (evt)
+            {
+                case EVT_LEFT:
+                    if (app.edit_mode) {
+                        if (app.cursor_col > 12) app.cursor_col--;
+                    } else {
+                        uint8_t col = app.cursor_col;
+                        if (col >= 12 && col <= 15) {
+                            int digit_index = col - 12;
+
+                            int place = 1;
+                            for (int i = 0; i < 3 - digit_index; i++) {
+                                place *= 10;
+                            }
+
+                            int digit = (app.editor_value / place) % 10;
+                            digit = (digit == 0) ? 5 : digit - 1;
+
+                            app.editor_value =
+                                app.editor_value - ((app.editor_value / place % 10) * place)
+                                + (digit * place);
+                        }
+                    }
+                    break;
+
+                case EVT_RIGHT:
+                    if (app.edit_mode) {
+                        if (app.cursor_col < 15) app.cursor_col++;
+                    } else {
+                        uint8_t col = app.cursor_col;
+                        if (col >= 12 && col <= 15) {
+                            int digit_index = col - 12;
+
+                            int place = 1;
+                            for (int i = 0; i < 3 - digit_index; i++) {
+                                place *= 10;
+                            }
+
+                            int digit = (app.editor_value / place) % 10;
+                            digit = (digit == 5) ? 0 : digit + 1;
+
+                            app.editor_value =
+                                app.editor_value - ((app.editor_value / place % 10) * place)
+                                + (digit * place);
+                        }
+                    }
+                    break;
+
+                case EVT_CENTER_SHORT:
+                    app.edit_mode = !app.edit_mode;
+                    break;
+
+                case EVT_CENTER_LONG:
+                {
+                    uint16_t val = app.editor_value;
+                    app.edit_mode = false;
+
+                    xSemaphoreGive(app_mutex); // unlock dulu sebelum save
+                    save_editor_value(val);
+                    continue; // skip unlock di bawah
+                }
+            }
+
+            xSemaphoreGive(app_mutex);
+        }
     }
 }
 
@@ -340,6 +459,12 @@ void app_main(void)
         ESP_LOGE("APP", "Failed to create mutex");
         abort();
     }
+
+    app_queue = xQueueCreate(10, sizeof(app_event_t));
+    if (app_queue == NULL) {
+        ESP_LOGE("APP", "Failed to create queue");
+        abort();
+    }
     
     esp_err_t ret = nvs_flash_init();
 
@@ -405,7 +530,8 @@ void app_main(void)
     .buttons = buttons,
     .count = button_count
     };
-
+    
+    xTaskCreate(app_task, "app", 4096, NULL, 6, NULL);
     xTaskCreate(button_task, "btn", 2048, &btn_group, 5, NULL);
     xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
     xTaskCreate(hx711_task, "hx", 2048, &scale, 5, NULL);
