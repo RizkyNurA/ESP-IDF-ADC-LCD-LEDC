@@ -21,6 +21,8 @@
 
 #include "editor.h"
 
+#include "lcd.h"
+
 #define pin_potensio ADC_CHANNEL_0 //VP
 #define pin_sck_hx711 GPIO_NUM_5
 #define pin_dt_hx711 GPIO_NUM_4
@@ -39,6 +41,8 @@
 #define EDITOR_CHAR_MIN 0
 #define EDITOR_CHAR_MAX 9
 #define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
+#define EDITOR_ROW 1
+#define EDITOR_COL_START 12
 
 typedef struct {
     uint32_t duty;
@@ -66,11 +70,11 @@ void editor_handle_event(editor_t *e, app_event_t evt)
     switch (e->state)
     {
         case UI_NAV:
-            if (evt == EVT_LEFT && e->cursor_col > 12) {
-                e->cursor_col--;
+            if (evt == EVT_LEFT && e->cursor_index > 12) {
+                e->cursor_index--;
             }
-            else if (evt == EVT_RIGHT && e->cursor_col < 15) {
-                e->cursor_col++;
+            else if (evt == EVT_RIGHT && e->cursor_index < 15) {
+                e->cursor_index++;
             }
             else if (evt == EVT_CENTER_SHORT) {
                 e->state = UI_EDIT;
@@ -289,7 +293,6 @@ void lcd_task(void *pv)
 {
     bool blink_state = false;
     uint8_t blink_counter = 0;
-    int temp;
 
     while (1)
     {
@@ -306,36 +309,27 @@ void lcd_task(void *pv)
         snapshot = app;
         xSemaphoreGive(app_mutex);
 
-        lcd_put_cur(0, 0);
-        lcd_send_string("POT :");
-        lcd_send_int(snapshot.duty);
+        lcd_set_cursor(0, 0);
+        lcd_write_string("POT :");
+        lcd_write_int(snapshot.duty);
 
-        lcd_put_cur(1, 0);
-        lcd_send_string("LC  :");
-        lcd_send_int(snapshot.raw);
+        lcd_set_cursor(1, 0);
+        lcd_write_string("LC  :");
+        lcd_write_int(snapshot.raw);
 
-        temp = snapshot.editor.value;
-        for (int i = 3; i >= 0; i--) 
+        for (int i = 0; i < 4; i++)
         {
-            int digit = temp % 10;
-            temp /= 10;
+            uint8_t digit = editor_get_digit(&snapshot.editor, i);
+            uint8_t col = EDITOR_COL_START + i;
 
-            lcd_put_cur(1, 12 + i);
+            lcd_set_cursor(EDITOR_ROW, col);
 
-            if (snapshot.editor.cursor_col == 12 + i) {
-                if (blink_state) 
-                {
-                    lcd_send_data(' ');
-                } 
-                else 
-                {
-                    lcd_send_data('0' + digit);
-                }
-            } 
-            else 
-            {
-                lcd_send_data('0' + digit);
-            }
+            bool blink = editor_should_blink(&snapshot.editor, i);
+
+            if (blink && blink_state)
+                lcd_write_char(' ');
+            else
+                lcd_write_char('0' + digit);
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));

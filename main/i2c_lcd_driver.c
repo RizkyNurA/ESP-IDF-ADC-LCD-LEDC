@@ -14,7 +14,6 @@ static i2c_master_bus_handle_t i2c_bus = NULL;
 static i2c_master_dev_handle_t lcd_dev = NULL;
 
 static esp_err_t lcd_i2c_write(uint8_t *data, size_t len);
-static void lcd_send_cmd(uint8_t cmd);
 static void lcd_send_nibble(uint8_t nibble);
 static const char* TAG = "I2C_LCD";
 
@@ -124,93 +123,3 @@ void lcd_init(void)
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-void lcd_put_cur(int row, int col)
-{
-    switch (row)
-    {
-        case 0:
-            col |= 0x80;
-            break;
-        case 1:
-            col |= 0xC0;
-            break;
-    }
-
-    lcd_send_cmd (col);
-}
-
-void lcd_send_string (char *str)
-{
-	while (*str) lcd_send_data (*str++);
-}
-
-void lcd_send_int(int num)
-{
-    char buf[12]; // cukup untuk int32
-    int i = 0;
-
-    if (num == 0) {
-        lcd_send_data('0');
-        return;
-    }
-
-    if (num < 0) {
-        lcd_send_data('-');
-        num = -num;
-    }
-
-    while (num > 0) {
-        buf[i++] = (num % 10) + '0';
-        num /= 10;
-    }
-
-    // reverse
-    for (int j = i - 1; j >= 0; j--) {
-        lcd_send_data(buf[j]);
-    }
-}
-
-void lcd_send_float(float num, int decimal_places)
-{
-    if (num < 0) {
-        lcd_send_data('-');
-        num = -num;
-    }
-
-    int int_part = (int)num;
-    float frac = num - int_part;
-
-    lcd_send_int(int_part);
-    lcd_send_data('.');
-
-    for (int i = 0; i < decimal_places; i++) {
-        frac *= 10;
-        int digit = (int)frac;
-        lcd_send_data(digit + '0');
-        frac -= digit;
-    }
-}
-
-void lcd_clear(void)
-{
-    lcd_send_cmd(0x01);
-    vTaskDelay(pdMS_TO_TICKS(2));;  // minimal 1.5ms
-}
-
-void lcd_clear_row(int row)
-{
-    lcd_put_cur(row, 0);
-    for (int i = 0; i < 16; i++) {
-        lcd_send_data(' ');
-    }
-}
-
-void lcd_create_char(uint8_t location, uint8_t charmap[])
-{
-    lcd_send_cmd(0x40 | ((location & 0x07) << 3));
-    for (int i = 0; i < 8; i++) {
-        lcd_send_data(charmap[i]);
-    }
-    
-    lcd_send_cmd(0x80);
-}

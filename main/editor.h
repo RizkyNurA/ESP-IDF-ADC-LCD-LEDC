@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct {
     uint16_t value;
-    uint8_t cursor_col;
+    uint8_t cursor_index;;
     ui_state_t state;
 } editor_t;
 
@@ -27,5 +27,11 @@ uint16_t editor_get_value(editor_t *e);
 void editor_dec_digit(editor_t *e);
 
 void editor_inc_digit(editor_t *e);
+
+uint8_t editor_get_digit(editor_t *e, uint8_t index);
+
+uint8_t editor_get_cursor_index(editor_t *e);
+
+bool editor_should_blink(editor_t *e, uint8_t index);
 
 #endif

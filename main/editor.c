@@ -1,14 +1,12 @@
 #include "editor.h"
 
-#define COL_MIN 12
-#define COL_MAX 15
+#define DIGIT_MIN 0
+#define DIGIT_MAX 3
 
-static int get_place(uint8_t col)
+static int get_place(uint8_t index)
 {
-    int digit_index = col - COL_MIN;
-
     int place = 1;
-    for (int i = 0; i < 3 - digit_index; i++) {
+    for (int i = 0; i < (3 - index); i++) {
         place *= 10;
     }
     return place;
@@ -17,7 +15,7 @@ static int get_place(uint8_t col)
 void editor_init(editor_t *e, uint16_t initial)
 {
     e->value = initial;
-    e->cursor_col = COL_MIN;
+    e->cursor_index = 0;
     e->state = UI_NAV;
 }
 
@@ -26,8 +24,8 @@ void editor_move_left(editor_t *e)
     switch (e->state)
     {
         case UI_NAV:
-            if (e->cursor_col > COL_MIN)
-                e->cursor_col--;
+            if (e->cursor_index > DIGIT_MIN)
+                e->cursor_index--;
             break;
 
         case UI_EDIT:
@@ -46,8 +44,8 @@ void editor_move_right(editor_t *e)
     switch (e->state)
     {
         case UI_NAV:
-            if (e->cursor_col < COL_MAX)
-                e->cursor_col++;
+            if (e->cursor_index < DIGIT_MAX)
+                e->cursor_index++;
             break;
 
         case UI_EDIT:
@@ -76,10 +74,10 @@ uint16_t editor_get_value(editor_t *e)
 
 void editor_dec_digit(editor_t *e)
 {
-    if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
+    if (e->cursor_index > DIGIT_MAX)
         return;
 
-    int place = get_place(e->cursor_col);
+    int place = get_place(e->cursor_index);
     int digit = (e->value / place) % 10;
 
     digit = (digit == 0) ? 9 : digit - 1;
@@ -90,13 +88,39 @@ void editor_dec_digit(editor_t *e)
 
 void editor_inc_digit(editor_t *e)
 {
-    if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
+    if (e->cursor_index > DIGIT_MAX)
         return;
 
-    int place = get_place(e->cursor_col);
+    int place = get_place(e->cursor_index);
     int digit = (e->value / place) % 10;
 
     digit = (digit == 9) ? 0 : digit + 1;
 
     e->value = e->value - ((e->value / place % 10) * place) + (digit * place);
+}
+
+uint8_t editor_get_digit(editor_t *e, uint8_t index)
+{
+    int temp = e->value;
+
+    for (int i = 0; i < (3 - index); i++)
+        temp /= 10;
+
+    return temp % 10;
+}
+
+uint8_t editor_get_cursor_index(editor_t *e)
+{
+    return e->cursor_index;
+}
+
+bool editor_should_blink(editor_t *e, uint8_t index)
+{
+    if (index != e->cursor_index)
+        return false;
+
+    if (e->state == UI_NAV || e->state == UI_EDIT)
+        return true;
+    
+    return false;
 }
