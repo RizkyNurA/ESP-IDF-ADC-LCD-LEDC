@@ -37,20 +37,21 @@
 #define EDITOR_CHAR_MIN 0
 #define EDITOR_CHAR_MAX 9
 #define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
-uint16_t editor_value = 0; // menyimpan 0–9999
 
-volatile uint32_t duty = 0;
-int32_t raw = 0;
+typedef struct {
+    uint32_t duty;
+    int32_t raw;
+    uint16_t editor_value;
+
+    uint8_t cursor_col;   // ganti lcd_cursor.col
+    bool edit_mode;       // ganti lcd_cursor.active
+} app_state_t;
+
+static app_state_t app = {0};
+
 volatile bool toggle_state = 0;
 
 static uint8_t char_index[16] = {0};
-
-static lcd_cursor_t lcd_cursor = {
-    .row = 1,
-    .col = 12,
-    .active = true,
-    .display_char = '_'
-};
 
 void save_editor_value(int val) 
 {
@@ -93,20 +94,20 @@ void left_button_handler(press_type_t event)
 {
     if (event != PRESS_SHORT) return;
 
-    if (lcd_cursor.active) 
+    if (app.edit_mode) 
     {
-        if (lcd_cursor.col > 12) lcd_cursor.col--; // kolom 12–15
+        if (app.cursor_col > 12) app.cursor_col--; // kolom 12–15
     } 
     else 
     {
-        int digit_index = lcd_cursor.col - 12;
+        int digit_index = app.cursor_col - 12;
         int place = 1;
         for (int i = 0; i < 3 - digit_index; i++) place *= 10;
 
-        int digit = (editor_value / place) % 10;
+        int digit = (app.editor_value / place) % 10;
         digit--;
         if (digit < 0) digit = 5; // range 0–5
-        editor_value = editor_value - ((editor_value / place % 10) * place) + (digit * place);
+        app.editor_value = app.editor_value - ((app.editor_value / place % 10) * place) + (digit * place);
     }
 }
 
@@ -114,20 +115,20 @@ void right_button_handler(press_type_t event)
 {
     if (event != PRESS_SHORT) return;
 
-    if (lcd_cursor.active) 
+    if (app.edit_mode) 
     {
-        if (lcd_cursor.col < 15) lcd_cursor.col++; // kolom 12–15
+        if (app.cursor_col < 15) app.cursor_col++; // kolom 12–15
     } 
     else 
     {
-        int digit_index = lcd_cursor.col - 12;
+        int digit_index = app.cursor_col - 12;
         int place = 1;
         for (int i = 0; i < 3 - digit_index; i++) place *= 10;
 
-        int digit = (editor_value / place) % 10;
+        int digit = (app.editor_value / place) % 10;
         digit++;
         if (digit > 5) digit = 0; // range 0–5
-        editor_value = editor_value - ((editor_value / place % 10) * place) + (digit * place);
+        app.editor_value = app.editor_value - ((app.editor_value / place % 10) * place) + (digit * place);
     }
 }
 
@@ -135,12 +136,12 @@ void center_button_handler(press_type_t event)
 {
     if (event == PRESS_SHORT) 
     {
-        lcd_cursor.active = !lcd_cursor.active;
+        app.edit_mode = !app.edit_mode;
     }
     else if (event == PRESS_VERY_LONG)
     {
-        lcd_cursor.active = false;
-        save_editor_value(editor_value);
+        app.edit_mode = false;
+        save_editor_value(app.editor_value);
     }
 }
 
@@ -179,9 +180,9 @@ void adc_task(void *pv)
     while (1)
     {
         int vp = adc_read_raw(&adc1, &ch0);
-        duty = (vp * 8191) / 4095;
+        app.duty = (vp * 8191) / 4095;
 
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty);
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, app.duty);
         ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -199,7 +200,7 @@ void hx711_task(void *pv)
 
         if (ready)
         {
-            hx711_read_data(scale, &raw);
+            hx711_read_data(scale, &app.raw);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -223,13 +224,13 @@ void lcd_task(void *pv)
 
         lcd_put_cur(0, 0);
         lcd_send_string("POT :");
-        lcd_send_int(duty);
+        lcd_send_int(app.duty);
 
         lcd_put_cur(1, 0);
         lcd_send_string("LC  :");
-        lcd_send_int(raw);
+        lcd_send_int(app.raw);
 
-        temp = editor_value;
+        temp = app.editor_value;
         for (int i = 3; i >= 0; i--) 
         {
             int digit = temp % 10;
@@ -237,7 +238,7 @@ void lcd_task(void *pv)
 
             lcd_put_cur(1, 12 + i);
 
-            if (lcd_cursor.active && lcd_cursor.col == 12 + i) {
+            if (app.edit_mode && app.cursor_col == 12 + i) {
                 if (blink_state) 
                 {
                     lcd_send_data(' ');
@@ -278,11 +279,13 @@ void app_main(void)
     }
 
     ESP_ERROR_CHECK(ret);
-    
-    GPIO_Initialation();
-    editor_value = load_editor_value();
 
-    int temp = editor_value;
+    GPIO_Initialation();
+    app.editor_value = load_editor_value();
+    app.cursor_col = 12;
+    app.edit_mode = true;
+
+    int temp = app.editor_value;
     for (int i = 3; i >= 0; i--) {
         char_index[i] = temp % 10;
         temp /= 10;
