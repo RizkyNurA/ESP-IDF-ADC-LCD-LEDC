@@ -19,6 +19,8 @@
 
 #include "push_button_driver.h"
 
+#include "editor.h"
+
 #define pin_potensio ADC_CHANNEL_0 //VP
 #define pin_sck_hx711 GPIO_NUM_5
 #define pin_dt_hx711 GPIO_NUM_4
@@ -41,11 +43,19 @@
 typedef struct {
     uint32_t duty;
     int32_t raw;
-    uint16_t editor_value;
 
-    uint8_t cursor_col;   // ganti lcd_cursor.col
-    bool edit_mode;       // ganti lcd_cursor.active
+    editor_t editor;
 } app_state_t;
+
+
+// typedef struct {
+//     uint32_t duty;
+//     int32_t raw;
+//     uint16_t editor_value;
+
+//     uint8_t cursor_col;   // ganti lcd_cursor.col
+//     bool edit_mode;       // ganti lcd_cursor.active
+// } app_state_t;
 
 typedef enum {
     EVT_LEFT,
@@ -60,8 +70,6 @@ SemaphoreHandle_t app_mutex;
 QueueHandle_t app_queue;
 
 volatile bool toggle_state = 0;
-
-static uint8_t char_index[16] = {0};
 
 void save_editor_value(int val) 
 {
@@ -98,112 +106,6 @@ void GPIO_Initialation()
     gpio_set_direction(pin_led_2, GPIO_MODE_OUTPUT);
     gpio_set_level(pin_led_2, 1);
     
-}
-
-void left_button_handler_lawas(press_type_t event) 
-{
-    if (event != PRESS_SHORT) return;
-
-    xSemaphoreTake(app_mutex, portMAX_DELAY);
-
-    if (app.edit_mode) 
-    {
-        if (app.cursor_col > 12) {
-            app.cursor_col--;
-        }
-    } 
-    else 
-    {
-        uint8_t col = app.cursor_col;
-        uint16_t value = app.editor_value;
-
-        int digit_index = col - 12;
-        if (col < 12 || col > 15) {
-            xSemaphoreGive(app_mutex);
-            return;
-        }
-
-        int place = 1;
-        for (int i = 0; i < 3 - digit_index; i++) {
-            place *= 10;
-        }
-
-        int digit = (value / place) % 10;
-
-        digit--;
-        if (digit < 0) digit = 5;
-
-        value = value - ((value / place % 10) * place) + (digit * place);
-
-        app.editor_value = value;
-    }
-
-    xSemaphoreGive(app_mutex);
-}
-
-void right_button_handler_lawas(press_type_t event) 
-{
-    if (event != PRESS_SHORT) return;
-
-    xSemaphoreTake(app_mutex, portMAX_DELAY);
-
-    if (app.edit_mode) 
-    {
-        if (app.cursor_col < 15) {
-            app.cursor_col++;
-        }
-    } 
-    else 
-    {
-        uint8_t col = app.cursor_col;
-
-        if (col < 12 || col > 15) {
-            xSemaphoreGive(app_mutex);
-            return;
-        }
-
-        uint16_t value = app.editor_value;
-
-        int digit_index = col - 12;
-
-        int place = 1;
-        for (int i = 0; i < 3 - digit_index; i++) {
-            place *= 10;
-        }
-
-        int digit = (value / place) % 10;
-
-        digit++;
-        if (digit > 5) digit = 0;
-
-        value = value - ((value / place % 10) * place) + (digit * place);
-
-        app.editor_value = value;
-    }
-
-    xSemaphoreGive(app_mutex);
-}
-
-void center_button_handler_lawas(press_type_t event)
-{
-    if (event == PRESS_SHORT) 
-    {
-        xSemaphoreTake(app_mutex, portMAX_DELAY);
-        app.edit_mode = !app.edit_mode;
-        xSemaphoreGive(app_mutex);
-    }
-    else if (event == PRESS_VERY_LONG)
-    {
-        uint16_t value;
-
-        xSemaphoreTake(app_mutex, portMAX_DELAY);
-        app.edit_mode = false;
-        value = app.editor_value;
-        xSemaphoreGive(app_mutex);
-
-        // save di luar mutex (PENTING)
-        save_editor_value(value);
-    }
 }
 
 void left_button_handler(press_type_t event) 
@@ -252,66 +154,26 @@ void app_task(void *pv)
             switch (evt)
             {
                 case EVT_LEFT:
-                    if (app.edit_mode) {
-                        if (app.cursor_col > 12) app.cursor_col--;
-                    } else {
-                        uint8_t col = app.cursor_col;
-                        if (col >= 12 && col <= 15) {
-                            int digit_index = col - 12;
-
-                            int place = 1;
-                            for (int i = 0; i < 3 - digit_index; i++) {
-                                place *= 10;
-                            }
-
-                            int digit = (app.editor_value / place) % 10;
-                            digit = (digit == 0) ? 5 : digit - 1;
-
-                            app.editor_value =
-                                app.editor_value - ((app.editor_value / place % 10) * place)
-                                + (digit * place);
-                        }
-                    }
+                    editor_move_left(&app.editor);
                     break;
 
                 case EVT_RIGHT:
-                    if (app.edit_mode) {
-                        if (app.cursor_col < 15) app.cursor_col++;
-                    } else {
-                        uint8_t col = app.cursor_col;
-                        if (col >= 12 && col <= 15) {
-                            int digit_index = col - 12;
-
-                            int place = 1;
-                            for (int i = 0; i < 3 - digit_index; i++) {
-                                place *= 10;
-                            }
-
-                            int digit = (app.editor_value / place) % 10;
-                            digit = (digit == 5) ? 0 : digit + 1;
-
-                            app.editor_value =
-                                app.editor_value - ((app.editor_value / place % 10) * place)
-                                + (digit * place);
-                        }
-                    }
+                    editor_move_right(&app.editor);
                     break;
 
                 case EVT_CENTER_SHORT:
-                    app.edit_mode = !app.edit_mode;
+                    editor_toggle_mode(&app.editor);
                     break;
 
                 case EVT_CENTER_LONG:
                 {
-                    uint16_t val = app.editor_value;
-                    app.edit_mode = false;
+                    uint16_t val = editor_get_value(&app.editor);
 
-                    xSemaphoreGive(app_mutex); // unlock dulu sebelum save
+                    xSemaphoreGive(app_mutex);
                     save_editor_value(val);
-                    continue; // skip unlock di bawah
+                    continue;
                 }
             }
-
             xSemaphoreGive(app_mutex);
         }
     }
@@ -414,7 +276,7 @@ void lcd_task(void *pv)
         lcd_send_string("LC  :");
         lcd_send_int(snapshot.raw);
 
-        temp = snapshot.editor_value;
+        temp = snapshot.editor.value;
         for (int i = 3; i >= 0; i--) 
         {
             int digit = temp % 10;
@@ -422,7 +284,7 @@ void lcd_task(void *pv)
 
             lcd_put_cur(1, 12 + i);
 
-            if (snapshot.edit_mode && snapshot.cursor_col == 12 + i) {
+            if (snapshot.editor.edit_mode && snapshot.editor.cursor_col == 12 + i) {
                 if (blink_state) 
                 {
                     lcd_send_data(' ');
@@ -477,16 +339,9 @@ void app_main(void)
 
     ESP_ERROR_CHECK(ret);
 
-    GPIO_Initialation();
-    app.editor_value = load_editor_value();
-    app.cursor_col = 12;
-    app.edit_mode = true;
+    editor_init(&app.editor, load_editor_value());
 
-    int temp = app.editor_value;
-    for (int i = 3; i >= 0; i--) {
-        char_index[i] = temp % 10;
-        temp /= 10;
-    }
+    GPIO_Initialation();
 
     hx711_t scale = {
         .dout = pin_dt_hx711,
