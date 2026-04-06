@@ -47,16 +47,6 @@ typedef struct {
     editor_t editor;
 } app_state_t;
 
-
-// typedef struct {
-//     uint32_t duty;
-//     int32_t raw;
-//     uint16_t editor_value;
-
-//     uint8_t cursor_col;   // ganti lcd_cursor.col
-//     bool edit_mode;       // ganti lcd_cursor.active
-// } app_state_t;
-
 typedef enum {
     EVT_LEFT,
     EVT_RIGHT,
@@ -70,6 +60,46 @@ SemaphoreHandle_t app_mutex;
 QueueHandle_t app_queue;
 
 volatile bool toggle_state = 0;
+
+void editor_handle_event(editor_t *e, app_event_t evt)
+{
+    switch (e->state)
+    {
+        case UI_NAV:
+            if (evt == EVT_LEFT && e->cursor_col > 12) {
+                e->cursor_col--;
+            }
+            else if (evt == EVT_RIGHT && e->cursor_col < 15) {
+                e->cursor_col++;
+            }
+            else if (evt == EVT_CENTER_SHORT) {
+                e->state = UI_EDIT;
+            }
+            else if (evt == EVT_CENTER_LONG) {
+                e->state = UI_SAVE;
+            }
+            break;
+
+        case UI_EDIT:
+            if (evt == EVT_LEFT) {
+                editor_dec_digit(e);
+            }
+            else if (evt == EVT_RIGHT) {
+                editor_inc_digit(e);
+            }
+            else if (evt == EVT_CENTER_SHORT) {
+                e->state = UI_NAV;
+            }
+            else if (evt == EVT_CENTER_LONG) {
+                e->state = UI_SAVE;
+            }
+            break;
+
+        case UI_SAVE:
+            // tidak handle input
+            break;
+    }
+}
 
 void save_editor_value(int val) 
 {
@@ -167,11 +197,19 @@ void app_task(void *pv)
 
                 case EVT_CENTER_LONG:
                 {
-                    uint16_t val = editor_get_value(&app.editor);
+                    editor_handle_event(&app.editor, evt);
 
-                    xSemaphoreGive(app_mutex);
-                    save_editor_value(val);
-                    continue;
+                    if (app.editor.state == UI_SAVE)
+                    {
+                        uint16_t val = editor_get_value(&app.editor);
+
+                        xSemaphoreGive(app_mutex);
+                        save_editor_value(val);
+
+                        xSemaphoreTake(app_mutex, portMAX_DELAY);
+                        app.editor.state = UI_NAV;
+                    }
+                    break;
                 }
             }
             xSemaphoreGive(app_mutex);
@@ -284,7 +322,7 @@ void lcd_task(void *pv)
 
             lcd_put_cur(1, 12 + i);
 
-            if (snapshot.editor.edit_mode && snapshot.editor.cursor_col == 12 + i) {
+            if (snapshot.editor.cursor_col == 12 + i) {
                 if (blink_state) 
                 {
                     lcd_send_data(' ');

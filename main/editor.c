@@ -18,59 +18,85 @@ void editor_init(editor_t *e, uint16_t initial)
 {
     e->value = initial;
     e->cursor_col = COL_MIN;
-    e->edit_mode = true;
+    e->state = UI_NAV;
 }
 
 void editor_move_left(editor_t *e)
 {
-    if (e->edit_mode)
+    switch (e->state)
     {
-        if (e->cursor_col > COL_MIN)
-            e->cursor_col--;
-    }
-    else
-    {
-        if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
-            return;
+        case UI_NAV:
+            if (e->cursor_col > COL_MIN)
+                e->cursor_col--;
+            break;
 
-        int place = get_place(e->cursor_col);
-        int digit = (e->value / place) % 10;
+        case UI_EDIT:
+        {
+            editor_dec_digit(e);
+            break;
+        }
 
-        digit = (digit == 0) ? 5 : digit - 1;
-
-        e->value = e->value - ((e->value / place % 10) * place)
-                             + (digit * place);
+        case UI_SAVE:
+            break;
     }
 }
 
 void editor_move_right(editor_t *e)
 {
-    if (e->edit_mode)
+    switch (e->state)
     {
-        if (e->cursor_col < COL_MAX)
-            e->cursor_col++;
-    }
-    else
-    {
-        if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
-            return;
+        case UI_NAV:
+            if (e->cursor_col < COL_MAX)
+                e->cursor_col++;
+            break;
 
-        int place = get_place(e->cursor_col);
-        int digit = (e->value / place) % 10;
+        case UI_EDIT:
+        {
+            editor_inc_digit(e);
+            break;
+        }
 
-        digit = (digit == 5) ? 0 : digit + 1;
-
-        e->value = e->value - ((e->value / place % 10) * place)
-                             + (digit * place);
+        case UI_SAVE:
+            break;
     }
 }
 
 void editor_toggle_mode(editor_t *e)
 {
-    e->edit_mode = !e->edit_mode;
+    if (e->state == UI_NAV)
+        e->state = UI_EDIT;
+    else if (e->state == UI_EDIT)
+        e->state = UI_NAV;
 }
 
 uint16_t editor_get_value(editor_t *e)
 {
     return e->value;
+}
+
+void editor_dec_digit(editor_t *e)
+{
+    if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
+        return;
+
+    int place = get_place(e->cursor_col);
+    int digit = (e->value / place) % 10;
+
+    digit = (digit == 0) ? 9 : digit - 1;
+
+    e->value = e->value - ((e->value / place % 10) * place)
+                         + (digit * place);
+}
+
+void editor_inc_digit(editor_t *e)
+{
+    if (e->cursor_col < COL_MIN || e->cursor_col > COL_MAX)
+        return;
+
+    int place = get_place(e->cursor_col);
+    int digit = (e->value / place) % 10;
+
+    digit = (digit == 9) ? 0 : digit + 1;
+
+    e->value = e->value - ((e->value / place % 10) * place) + (digit * place);
 }
