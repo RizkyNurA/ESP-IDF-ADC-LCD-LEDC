@@ -49,6 +49,8 @@ typedef struct {
 
 static app_state_t app = {0};
 
+SemaphoreHandle_t app_mutex;
+
 volatile bool toggle_state = 0;
 
 static uint8_t char_index[16] = {0};
@@ -94,54 +96,105 @@ void left_button_handler(press_type_t event)
 {
     if (event != PRESS_SHORT) return;
 
+    xSemaphoreTake(app_mutex, portMAX_DELAY);
+
     if (app.edit_mode) 
     {
-        if (app.cursor_col > 12) app.cursor_col--; // kolom 12–15
+        if (app.cursor_col > 12) {
+            app.cursor_col--;
+        }
     } 
     else 
     {
-        int digit_index = app.cursor_col - 12;
-        int place = 1;
-        for (int i = 0; i < 3 - digit_index; i++) place *= 10;
+        uint8_t col = app.cursor_col;
+        uint16_t value = app.editor_value;
 
-        int digit = (app.editor_value / place) % 10;
+        int digit_index = col - 12;
+        if (col < 12 || col > 15) {
+            xSemaphoreGive(app_mutex);
+            return;
+        }
+
+        int place = 1;
+        for (int i = 0; i < 3 - digit_index; i++) {
+            place *= 10;
+        }
+
+        int digit = (value / place) % 10;
+
         digit--;
-        if (digit < 0) digit = 5; // range 0–5
-        app.editor_value = app.editor_value - ((app.editor_value / place % 10) * place) + (digit * place);
+        if (digit < 0) digit = 5;
+
+        value = value - ((value / place % 10) * place) + (digit * place);
+
+        app.editor_value = value;
     }
+
+    xSemaphoreGive(app_mutex);
 }
 
 void right_button_handler(press_type_t event) 
 {
     if (event != PRESS_SHORT) return;
 
+    xSemaphoreTake(app_mutex, portMAX_DELAY);
+
     if (app.edit_mode) 
     {
-        if (app.cursor_col < 15) app.cursor_col++; // kolom 12–15
+        if (app.cursor_col < 15) {
+            app.cursor_col++;
+        }
     } 
     else 
     {
-        int digit_index = app.cursor_col - 12;
-        int place = 1;
-        for (int i = 0; i < 3 - digit_index; i++) place *= 10;
+        uint8_t col = app.cursor_col;
 
-        int digit = (app.editor_value / place) % 10;
+        if (col < 12 || col > 15) {
+            xSemaphoreGive(app_mutex);
+            return;
+        }
+
+        uint16_t value = app.editor_value;
+
+        int digit_index = col - 12;
+
+        int place = 1;
+        for (int i = 0; i < 3 - digit_index; i++) {
+            place *= 10;
+        }
+
+        int digit = (value / place) % 10;
+
         digit++;
-        if (digit > 5) digit = 0; // range 0–5
-        app.editor_value = app.editor_value - ((app.editor_value / place % 10) * place) + (digit * place);
+        if (digit > 5) digit = 0;
+
+        value = value - ((value / place % 10) * place) + (digit * place);
+
+        app.editor_value = value;
     }
+
+    xSemaphoreGive(app_mutex);
 }
 
 void center_button_handler(press_type_t event) 
 {
     if (event == PRESS_SHORT) 
     {
+        xSemaphoreTake(app_mutex, portMAX_DELAY);
         app.edit_mode = !app.edit_mode;
+        xSemaphoreGive(app_mutex);
     }
     else if (event == PRESS_VERY_LONG)
     {
+        uint16_t value;
+
+        xSemaphoreTake(app_mutex, portMAX_DELAY);
         app.edit_mode = false;
-        save_editor_value(app.editor_value);
+        value = app.editor_value;
+        xSemaphoreGive(app_mutex);
+
+        // save di luar mutex (PENTING)
+        save_editor_value(value);
     }
 }
 
@@ -180,9 +233,13 @@ void adc_task(void *pv)
     while (1)
     {
         int vp = adc_read_raw(&adc1, &ch0);
-        app.duty = (vp * 8191) / 4095;
+        uint32_t duty_local = (vp * 8191) / 4095;
 
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, app.duty);
+        xSemaphoreTake(app_mutex, portMAX_DELAY);
+        app.duty = duty_local;
+        xSemaphoreGive(app_mutex);
+
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty_local);
         ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -200,7 +257,9 @@ void hx711_task(void *pv)
 
         if (ready)
         {
+            xSemaphoreTake(app_mutex, portMAX_DELAY);
             hx711_read_data(scale, &app.raw);
+            xSemaphoreGive(app_mutex);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -222,15 +281,21 @@ void lcd_task(void *pv)
             blink_state = !blink_state;
         }
 
+        app_state_t snapshot;
+
+        xSemaphoreTake(app_mutex, portMAX_DELAY);
+        snapshot = app;
+        xSemaphoreGive(app_mutex);
+
         lcd_put_cur(0, 0);
         lcd_send_string("POT :");
-        lcd_send_int(app.duty);
+        lcd_send_int(snapshot.duty);
 
         lcd_put_cur(1, 0);
         lcd_send_string("LC  :");
-        lcd_send_int(app.raw);
+        lcd_send_int(snapshot.raw);
 
-        temp = app.editor_value;
+        temp = snapshot.editor_value;
         for (int i = 3; i >= 0; i--) 
         {
             int digit = temp % 10;
@@ -238,7 +303,7 @@ void lcd_task(void *pv)
 
             lcd_put_cur(1, 12 + i);
 
-            if (app.edit_mode && app.cursor_col == 12 + i) {
+            if (snapshot.edit_mode && snapshot.cursor_col == 12 + i) {
                 if (blink_state) 
                 {
                     lcd_send_data(' ');
@@ -269,6 +334,13 @@ void led_task(void *pv)
 
 void app_main(void)
 {
+    app_mutex = xSemaphoreCreateMutex();
+    if (app_mutex == NULL) 
+    {
+        ESP_LOGE("APP", "Failed to create mutex");
+        abort();
+    }
+    
     esp_err_t ret = nvs_flash_init();
 
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
