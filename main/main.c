@@ -31,9 +31,21 @@
 #define interval_adc_potensio 100000
 #define interval_lcd 5000000
 
+#define BLINK_THRESHOLD 3
+#define EDITOR_CHAR_MIN 0
+#define EDITOR_CHAR_MAX 5
+#define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
+
 volatile uint32_t duty = 0;
 int32_t raw = 0;
 volatile bool toggle_state = 0;
+
+static lcd_cursor_t lcd_cursor = {
+    .row = 1,
+    .col = 12,
+    .active = true,
+    .display_char = '_'
+};
 
 void GPIO_Initialation()
 {
@@ -52,24 +64,27 @@ void GPIO_Initialation()
     
 }
 
-void left_button_handler(press_type_t event)
+void left_button_handler(press_type_t event) 
 {
-    if (event == PRESS_SHORT) {
-        toggle_state = !toggle_state;
+    if (event == PRESS_SHORT && lcd_cursor.active) 
+    {
+        if (lcd_cursor.col > 0) lcd_cursor.col--;
     }
 }
 
-void center_button_handler(press_type_t event)
+void right_button_handler(press_type_t event) 
 {
-    if (event == PRESS_SHORT) {
-        toggle_state = 1;
+    if (event == PRESS_SHORT && lcd_cursor.active) 
+    {
+        if (lcd_cursor.col < 15) lcd_cursor.col++;
     }
 }
 
-void right_button_handler(press_type_t event)
+void center_button_handler(press_type_t event) 
 {
-    if (event == PRESS_SHORT) {
-        toggle_state = 0;
+    if (event == PRESS_SHORT) 
+    {
+        lcd_cursor.active = !lcd_cursor.active; // toggle aktif/nonaktif
     }
 }
 
@@ -137,7 +152,7 @@ void hx711_task(void *pv)
 
 void lcd_task(void *pv)
 {
-    while (1)
+    while (1) 
     {
         lcd_put_cur(0, 0);
         lcd_send_string("POT :");
@@ -146,6 +161,10 @@ void lcd_task(void *pv)
         lcd_put_cur(1, 0);
         lcd_send_string("LC  :");
         lcd_send_int(raw);
+
+        // tampilkan cursor
+        lcd_put_cur(lcd_cursor.row, lcd_cursor.col);
+        lcd_send_data(lcd_cursor.display_char);
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }

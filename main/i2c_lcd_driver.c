@@ -14,7 +14,6 @@ static i2c_master_bus_handle_t i2c_bus = NULL;
 static i2c_master_dev_handle_t lcd_dev = NULL;
 
 static esp_err_t lcd_i2c_write(uint8_t *data, size_t len);
-static void lcd_send_data(uint8_t data);
 static void lcd_send_cmd(uint8_t cmd);
 static void lcd_send_nibble(uint8_t nibble);
 static const char* TAG = "I2C_LCD";
@@ -49,7 +48,7 @@ static esp_err_t lcd_i2c_write(uint8_t *data, size_t len)
     return i2c_master_transmit(lcd_dev, data, len, -1);
 }
 
-static void lcd_send_data(uint8_t data)
+void lcd_send_data(uint8_t data)
 {
     uint8_t data_u = data & 0xF0;
     uint8_t data_l = (data << 4) & 0xF0;
@@ -204,4 +203,14 @@ void lcd_clear_row(int row)
     for (int i = 0; i < 16; i++) {
         lcd_send_data(' ');
     }
+}
+
+void lcd_create_char(uint8_t location, uint8_t charmap[])
+{
+    lcd_send_cmd(0x40 | ((location & 0x07) << 3));
+    for (int i = 0; i < 8; i++) {
+        lcd_send_data(charmap[i]);
+    }
+    
+    lcd_send_cmd(0x80);
 }
