@@ -13,12 +13,14 @@ typedef struct {
     int64_t debounce_time;
     int64_t short_press_time;
     int64_t long_press_time;
+    int64_t very_long_press_time;
 } button_config_t;
 
 typedef enum {
     PRESS_NONE = 0,
     PRESS_SHORT,   // ~1 detik
-    PRESS_LONG     // ~2 detik
+    PRESS_LONG,     // ~2 detik
+    PRESS_VERY_LONG
 } press_type_t;
 
 typedef enum {

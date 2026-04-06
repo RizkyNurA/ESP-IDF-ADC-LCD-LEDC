@@ -30,25 +30,22 @@ press_type_t button_update(button_t *btn,
             break;
 
         case BTN_PRESSED:
-            if (level == 0) {
+            if (level == 0) { // tombol dilepas
                 int64_t duration = now - btn->timestamp;
                 btn->state = BTN_IDLE;
 
-                if (duration >= cfg->long_press_time)
+                if (duration >= cfg->very_long_press_time)
+                    return PRESS_VERY_LONG;
+                else if (duration >= cfg->long_press_time)
                     return PRESS_LONG;
                 else if (duration >= cfg->short_press_time)
                     return PRESS_SHORT;
             }
-            else if ((now - btn->timestamp) >= cfg->long_press_time) {
-                btn->state = BTN_HOLD;
-            }
             break;
 
         case BTN_HOLD:
-            if (level == 0) {
-                btn->state = BTN_IDLE;
-                return PRESS_LONG;
-            }
+        
+            btn->state = BTN_IDLE;
             break;
     }
 

@@ -6,6 +6,8 @@
 #include "esp_pm.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 
 #include "adc_driver.h"
 
@@ -41,8 +43,6 @@ volatile uint32_t duty = 0;
 int32_t raw = 0;
 volatile bool toggle_state = 0;
 
-static const int64_t DOUBLE_CLICK_MS = 500;
-
 static uint8_t char_index[16] = {0};
 
 static lcd_cursor_t lcd_cursor = {
@@ -51,6 +51,26 @@ static lcd_cursor_t lcd_cursor = {
     .active = true,
     .display_char = '_'
 };
+
+void save_editor_value(int val) 
+{
+    nvs_handle_t handle;
+    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &handle));
+    ESP_ERROR_CHECK(nvs_set_i32(handle, "editor_val", val));
+    ESP_ERROR_CHECK(nvs_commit(handle));
+    nvs_close(handle);
+}
+
+int load_editor_value() 
+{
+    nvs_handle_t handle;
+    int32_t val = 0;
+    if (nvs_open("storage", NVS_READONLY, &handle) == ESP_OK) {
+        nvs_get_i32(handle, "editor_val", &val);
+        nvs_close(handle);
+    }
+    return val;
+}
 
 void GPIO_Initialation()
 {
@@ -115,7 +135,12 @@ void center_button_handler(press_type_t event)
 {
     if (event == PRESS_SHORT) 
     {
-        lcd_cursor.active = !lcd_cursor.active; // toggle aktif/nonaktif
+        lcd_cursor.active = !lcd_cursor.active;
+    }
+    else if (event == PRESS_VERY_LONG)
+    {
+        lcd_cursor.active = false;
+        save_editor_value(editor_value);
     }
 }
 
@@ -243,7 +268,25 @@ void led_task(void *pv)
 
 void app_main(void)
 {
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+    
     GPIO_Initialation();
+    editor_value = load_editor_value();
+
+    int temp = editor_value;
+    for (int i = 3; i >= 0; i--) {
+        char_index[i] = temp % 10;
+        temp /= 10;
+    }
 
     hx711_t scale = {
         .dout = pin_dt_hx711,
@@ -271,7 +314,8 @@ void app_main(void)
     button_config_t cfg = {
         .debounce_time = 10000,
         .short_press_time = 50000,
-        .long_press_time = 1000000
+        .long_press_time = 1000000,
+        .very_long_press_time = 5000000
     };
 
     button_ctx_t buttons[] = {
