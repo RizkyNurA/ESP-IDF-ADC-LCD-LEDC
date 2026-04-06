@@ -33,12 +33,17 @@
 
 #define BLINK_THRESHOLD 3
 #define EDITOR_CHAR_MIN 0
-#define EDITOR_CHAR_MAX 5
+#define EDITOR_CHAR_MAX 9
 #define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
+uint16_t editor_value = 0; // menyimpan 0–9999
 
 volatile uint32_t duty = 0;
 int32_t raw = 0;
 volatile bool toggle_state = 0;
+
+static const int64_t DOUBLE_CLICK_MS = 500;
+
+static uint8_t char_index[16] = {0};
 
 static lcd_cursor_t lcd_cursor = {
     .row = 1,
@@ -66,17 +71,43 @@ void GPIO_Initialation()
 
 void left_button_handler(press_type_t event) 
 {
-    if (event == PRESS_SHORT && lcd_cursor.active) 
+    if (event != PRESS_SHORT) return;
+
+    if (lcd_cursor.active) 
     {
-        if (lcd_cursor.col > 0) lcd_cursor.col--;
+        if (lcd_cursor.col > 12) lcd_cursor.col--; // kolom 12–15
+    } 
+    else 
+    {
+        int digit_index = lcd_cursor.col - 12;
+        int place = 1;
+        for (int i = 0; i < 3 - digit_index; i++) place *= 10;
+
+        int digit = (editor_value / place) % 10;
+        digit--;
+        if (digit < 0) digit = 5; // range 0–5
+        editor_value = editor_value - ((editor_value / place % 10) * place) + (digit * place);
     }
 }
 
 void right_button_handler(press_type_t event) 
 {
-    if (event == PRESS_SHORT && lcd_cursor.active) 
+    if (event != PRESS_SHORT) return;
+
+    if (lcd_cursor.active) 
     {
-        if (lcd_cursor.col < 15) lcd_cursor.col++;
+        if (lcd_cursor.col < 15) lcd_cursor.col++; // kolom 12–15
+    } 
+    else 
+    {
+        int digit_index = lcd_cursor.col - 12;
+        int place = 1;
+        for (int i = 0; i < 3 - digit_index; i++) place *= 10;
+
+        int digit = (editor_value / place) % 10;
+        digit++;
+        if (digit > 5) digit = 0; // range 0–5
+        editor_value = editor_value - ((editor_value / place % 10) * place) + (digit * place);
     }
 }
 
@@ -152,8 +183,19 @@ void hx711_task(void *pv)
 
 void lcd_task(void *pv)
 {
-    while (1) 
+    bool blink_state = false;
+    uint8_t blink_counter = 0;
+    int temp;
+
+    while (1)
     {
+        blink_counter++;
+        if (blink_counter > BLINK_THRESHOLD) 
+        {
+            blink_counter = 0;
+            blink_state = !blink_state;
+        }
+
         lcd_put_cur(0, 0);
         lcd_send_string("POT :");
         lcd_send_int(duty);
@@ -162,9 +204,29 @@ void lcd_task(void *pv)
         lcd_send_string("LC  :");
         lcd_send_int(raw);
 
-        // tampilkan cursor
-        lcd_put_cur(lcd_cursor.row, lcd_cursor.col);
-        lcd_send_data(lcd_cursor.display_char);
+        temp = editor_value;
+        for (int i = 3; i >= 0; i--) 
+        {
+            int digit = temp % 10;
+            temp /= 10;
+
+            lcd_put_cur(1, 12 + i);
+
+            if (lcd_cursor.active && lcd_cursor.col == 12 + i) {
+                if (blink_state) 
+                {
+                    lcd_send_data(' ');
+                } 
+                else 
+                {
+                    lcd_send_data('0' + digit);
+                }
+            } 
+            else 
+            {
+                lcd_send_data('0' + digit);
+            }
+        }
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
