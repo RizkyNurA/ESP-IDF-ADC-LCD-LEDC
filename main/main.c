@@ -44,11 +44,20 @@
 #define EDITOR_ROW 1
 #define EDITOR_COL_START 12
 
+typedef enum {
+    APP_LOADING,
+    APP_IDLE,
+    APP_MENU,
+    APP_CALIBRATION
+} app_screen_t;
+
 typedef struct {
     uint32_t duty;
     int32_t raw;
-
     editor_t editor;
+    app_screen_t screen;
+    bool system_ready;
+
 } app_state_t;
 
 typedef enum {
@@ -58,12 +67,61 @@ typedef enum {
     EVT_CENTER_LONG
 } app_event_t;
 
+typedef struct {
+    hx711_t scale;
+} system_ctx_t;
+
+static system_ctx_t sys;
+SemaphoreHandle_t sys_mutex;
+
 static app_state_t app = {0};
 
 SemaphoreHandle_t app_mutex;
 QueueHandle_t app_queue;
 
 volatile bool toggle_state = 0;
+
+void app_handle_event(app_state_t *app, app_event_t evt)
+{
+    void save_editor_value(int val);
+    int load_editor_value(void);
+    switch (app->screen)
+    {
+        case APP_LOADING:
+            break;
+            
+        case APP_IDLE:
+            if (evt == EVT_CENTER_SHORT)
+                app->screen = APP_MENU;
+            break;
+
+        case APP_MENU:
+            if (evt == EVT_CENTER_SHORT)
+                app->screen = APP_CALIBRATION;
+            else if (evt == EVT_CENTER_LONG)
+                app->screen = APP_IDLE;
+            break;
+
+        case APP_CALIBRATION:
+
+            if (evt == EVT_LEFT)
+                editor_move_left(&app->editor);
+
+            else if (evt == EVT_RIGHT)
+                editor_move_right(&app->editor);
+
+            else if (evt == EVT_CENTER_SHORT)
+                editor_toggle_mode(&app->editor);
+
+            else if (evt == EVT_CENTER_LONG)
+            {
+                save_editor_value(editor_get_value(&app->editor));
+                app->screen = APP_IDLE;
+            }
+
+            break;
+    }
+}
 
 void editor_handle_event(editor_t *e, app_event_t evt)
 {
@@ -185,41 +243,13 @@ void app_task(void *pv)
         {
             xSemaphoreTake(app_mutex, portMAX_DELAY);
 
-            switch (evt)
-            {
-                case EVT_LEFT:
-                    editor_move_left(&app.editor);
-                    break;
+            app_handle_event(&app, evt);
 
-                case EVT_RIGHT:
-                    editor_move_right(&app.editor);
-                    break;
-
-                case EVT_CENTER_SHORT:
-                    editor_toggle_mode(&app.editor);
-                    break;
-
-                case EVT_CENTER_LONG:
-                {
-                    editor_handle_event(&app.editor, evt);
-
-                    if (app.editor.state == UI_SAVE)
-                    {
-                        uint16_t val = editor_get_value(&app.editor);
-
-                        xSemaphoreGive(app_mutex);
-                        save_editor_value(val);
-
-                        xSemaphoreTake(app_mutex, portMAX_DELAY);
-                        app.editor.state = UI_NAV;
-                    }
-                    break;
-                }
-            }
             xSemaphoreGive(app_mutex);
         }
     }
 }
+
 
 void button_task(void *pv)
 {
@@ -289,6 +319,8 @@ void hx711_task(void *pv)
     }
 }
 
+static app_screen_t last_screen = -1;
+
 void lcd_task(void *pv)
 {
     bool blink_state = false;
@@ -297,8 +329,7 @@ void lcd_task(void *pv)
     while (1)
     {
         blink_counter++;
-        if (blink_counter > BLINK_THRESHOLD) 
-        {
+        if (blink_counter > BLINK_THRESHOLD) {
             blink_counter = 0;
             blink_state = !blink_state;
         }
@@ -309,27 +340,63 @@ void lcd_task(void *pv)
         snapshot = app;
         xSemaphoreGive(app_mutex);
 
-        lcd_set_cursor(0, 0);
-        lcd_write_string("POT :");
-        lcd_write_int(snapshot.duty);
-
-        lcd_set_cursor(1, 0);
-        lcd_write_string("LC  :");
-        lcd_write_int(snapshot.raw);
-
-        for (int i = 0; i < 4; i++)
+        if (!snapshot.system_ready)
         {
-            uint8_t digit = editor_get_digit(&snapshot.editor, i);
-            uint8_t col = EDITOR_COL_START + i;
+            lcd_clear();
+            lcd_set_cursor(0, 0);
+            lcd_write_string("Loading...");
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
 
-            lcd_set_cursor(EDITOR_ROW, col);
+        if (snapshot.screen != last_screen)
+        {
+            lcd_clear();
+            last_screen = snapshot.screen;
+        }
 
-            bool blink = editor_should_blink(&snapshot.editor, i);
+        switch (snapshot.screen)
+        {
+            case APP_IDLE:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("POT:");
+                lcd_write_int(snapshot.duty);
 
-            if (blink && blink_state)
-                lcd_write_char(' ');
-            else
-                lcd_write_char('0' + digit);
+                lcd_set_cursor(1, 0);
+                lcd_write_string("LC :");
+                lcd_write_int(snapshot.raw);
+                break;
+
+            case APP_MENU:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("MENU");
+                lcd_set_cursor(1, 0);
+                lcd_write_string("Press Center");
+                break;
+
+            case APP_CALIBRATION:
+
+                lcd_set_cursor(0, 0);
+                lcd_write_string("CAL:");
+
+                for (int i = 0; i < 4; i++)
+                {
+                    uint8_t digit = editor_get_digit(&snapshot.editor, i);
+                    uint8_t col = EDITOR_COL_START + i;
+
+                    lcd_set_cursor(EDITOR_ROW, col);
+
+                    bool blink = editor_should_blink(&snapshot.editor, i);
+
+                    if (blink && blink_state)
+                        lcd_write_char(' ');
+                    else
+                        lcd_write_char('0' + digit);
+                }
+                break;
+
+            default:
+                break;
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -343,6 +410,11 @@ void led_task(void *pv)
         gpio_set_level(pin_led_2, toggle_state);
         vTaskDelay(pdMS_TO_TICKS(10));
     }
+}
+
+void system_init_task(void *pv)
+{
+    vTaskDelete(NULL);
 }
 
 void app_main(void)
@@ -359,29 +431,24 @@ void app_main(void)
         ESP_LOGE("APP", "Failed to create queue");
         abort();
     }
-    
-    esp_err_t ret = nvs_flash_init();
 
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
-        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    sys_mutex = xSemaphoreCreateMutex();
+    if (sys_mutex == NULL)
     {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
+        ESP_LOGE("APP", "Failed to create mutex");
+        abort();
     }
 
-    ESP_ERROR_CHECK(ret);
-
-    editor_init(&app.editor, load_editor_value());
-
     GPIO_Initialation();
+    xSemaphoreTake(sys_mutex, portMAX_DELAY);
 
-    hx711_t scale = {
-        .dout = pin_dt_hx711,
-        .pd_sck = pin_sck_hx711,
-        .gain = HX711_GAIN_A_128
-    };
+    sys.scale.dout = pin_dt_hx711;
+    sys.scale.pd_sck = pin_sck_hx711;
+    sys.scale.gain = HX711_GAIN_A_128;
 
-    ESP_ERROR_CHECK(hx711_init(&scale));
+    ESP_ERROR_CHECK(hx711_init(&sys.scale));
+
+    xSemaphoreGive(sys_mutex);
 
     lcd_init();
 
@@ -396,8 +463,26 @@ void app_main(void)
                     LEDC_TIMER_0, 
                     pin_led_1, 
                     4000);
-                    
 
+    editor_init(&app.editor, load_editor_value());
+
+    // tandai selesai
+    xSemaphoreTake(app_mutex, portMAX_DELAY);
+    app.system_ready = true;
+    app.screen = APP_IDLE;
+    xSemaphoreGive(app_mutex);
+    
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+                    
     button_config_t cfg = {
         .debounce_time = 10000,
         .short_press_time = 50000,
@@ -417,11 +502,12 @@ void app_main(void)
     .buttons = buttons,
     .count = button_count
     };
-    
+
+    xTaskCreate(system_init_task,"sys", 1024, NULL, 7, NULL);
     xTaskCreate(app_task, "app", 4096, NULL, 6, NULL);
     xTaskCreate(button_task, "btn", 2048, &btn_group, 5, NULL);
     xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
-    xTaskCreate(hx711_task, "hx", 2048, &scale, 5, NULL);
+    xTaskCreate(hx711_task, "hx", 2048, &sys.scale, 6, NULL);
     xTaskCreate(lcd_task, "lcd", 4096, NULL, 3, NULL);
     xTaskCreate(led_task, "led", 1024, NULL, 2, NULL);
     
