@@ -23,53 +23,9 @@
 
 #include "lcd.h"
 
-#define pin_potensio ADC_CHANNEL_0 //VP
-#define pin_sck_hx711 GPIO_NUM_5
-#define pin_dt_hx711 GPIO_NUM_4
+#include "config.h"
 
-#define pin_led_1 GPIO_NUM_2
-#define pin_led_2 GPIO_NUM_19
-
-#define pin_button_left GPIO_NUM_32
-#define pin_button_center GPIO_NUM_35
-#define pin_button_right GPIO_NUM_34
-
-#define interval_adc_potensio 100000
-#define interval_lcd 5000000
-
-#define BLINK_THRESHOLD 3
-#define EDITOR_CHAR_MIN 0
-#define EDITOR_CHAR_MAX 9
-#define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
-#define EDITOR_ROW 1
-#define EDITOR_COL_START 12
-
-typedef enum {
-    APP_LOADING,
-    APP_IDLE,
-    APP_MENU,
-    APP_CALIBRATION
-} app_screen_t;
-
-typedef struct {
-    uint32_t duty;
-    int32_t raw;
-    editor_t editor;
-    app_screen_t screen;
-    bool system_ready;
-
-} app_state_t;
-
-typedef enum {
-    EVT_LEFT,
-    EVT_RIGHT,
-    EVT_CENTER_SHORT,
-    EVT_CENTER_LONG
-} app_event_t;
-
-typedef struct {
-    hx711_t scale;
-} system_ctx_t;
+#include "types.h"
 
 static system_ctx_t sys;
 SemaphoreHandle_t sys_mutex;
@@ -471,7 +427,7 @@ void app_main(void)
     app.system_ready = true;
     app.screen = APP_IDLE;
     xSemaphoreGive(app_mutex);
-    
+
     esp_err_t ret = nvs_flash_init();
 
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
