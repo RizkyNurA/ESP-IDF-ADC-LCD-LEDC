@@ -1,0 +1,34 @@
+#ifndef TYPES_H
+#define TYPES_H
+
+#include <stdbool.h>
+#include "editor.h"
+#include "hx711_driver.h"
+
+typedef enum {
+    APP_LOADING,
+    APP_IDLE,
+    APP_MENU,
+    APP_CALIBRATION
+} app_screen_t;
+
+typedef struct {
+    uint32_t duty;
+    int32_t raw;
+    editor_t editor;
+    app_screen_t screen;
+    bool system_ready;
+} app_state_t;
+
+typedef enum {
+    EVT_LEFT,
+    EVT_RIGHT,
+    EVT_CENTER_SHORT,
+    EVT_CENTER_LONG
+} app_event_t;
+
+typedef struct {
+    hx711_t scale;
+} system_ctx_t;
+
+#endif // TYPES_H
