@@ -1,9 +1,9 @@
-#include <stdio.h>
-
+/* ===================== RTOS ===================== */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
+/* ===================== ESP ===================== */
 #include "esp_err.h"
 #include "sdkconfig.h"
 #include "esp_pm.h"
@@ -12,29 +12,29 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
-#include "adc_driver.h"
+/* ===================== COMMON ===================== */
+#include "common/types.h"
 
-#include "led_driver.h"
+/* ===================== CONFIG ===================== */
+#include "config/config.h"
 
-#include "i2c_lcd_driver.h"
+/* ===================== SYSTEM ===================== */
+#include "system/app_context.h"
 
-#include "hx711_driver.h"
+/* ===================== CORE ===================== */
+#include "core/drivers.h"
 
-#include "push_button_driver.h"
+/* ===================== APP ===================== */
+#include "app/app_logic.h"
+#include "app/editor.h"
 
-#include "editor.h"
-
-#include "lcd.h"
-
-#include "config.h"
-
-#include "types.h"
-
-#include "drivers.h"
-
-#include "app_context.h"
-
-#include "app_logic.h"
+/* ===================== DRIVERS ===================== */
+#include "drivers/adc/adc_driver.h"
+#include "drivers/led/led_driver.h"
+#include "drivers/lcd/i2c_lcd_driver.h"
+#include "drivers/lcd/lcd.h"
+#include "drivers/hx711/hx711_driver.h"
+#include "drivers/button/push_button_driver.h"
 
 void app_main(void)
 {
