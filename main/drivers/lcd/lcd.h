@@ -3,9 +3,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "driver/gpio.h"
 
 // init
-void lcd_init_wrapper(void);
+void lcd_init_wrapper(gpio_num_t pin_sda, gpio_num_t pin_scl);
 
 // basic
 void lcd_clear(void);

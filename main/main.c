@@ -35,6 +35,7 @@
 #include "drivers/lcd/lcd.h"
 #include "drivers/hx711/hx711_driver.h"
 #include "drivers/button/push_button_driver.h"
+#include "driver/gpio.h"
 
 void app_main(void)
 {
@@ -83,7 +84,7 @@ void app_main(void)
 
     xSemaphoreGive(sys_mutex);
 
-    lcd_init();
+    lcd_init(I2C_SDA_GPIO, I2C_SCL_GPIO);
 
     pwm_timer_init(LEDC_LOW_SPEED_MODE,
                    LEDC_TIMER_0,

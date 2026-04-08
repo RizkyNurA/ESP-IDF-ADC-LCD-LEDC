@@ -10,6 +10,9 @@
 #define pin_led_1 GPIO_NUM_2
 #define pin_led_2 GPIO_NUM_19
 
+#define pin_sda_lcd GPIO_NUM_21
+#define pin_scl_lcd GPIO_NUM_22
+
 #define pin_button_left GPIO_NUM_32
 #define pin_button_center GPIO_NUM_35
 #define pin_button_right GPIO_NUM_34

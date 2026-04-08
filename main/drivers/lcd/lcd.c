@@ -1,11 +1,12 @@
 #include "lcd.h"
 #include "i2c_lcd_driver.h"
+#include "driver/gpio.h"
 
 // ================= BASIC =================
 
-void lcd_init_wrapper(void)
+void lcd_init_wrapper(gpio_num_t pin_sda, gpio_num_t pin_scl)
 {
-    lcd_init();
+    lcd_init(pin_sda, pin_scl);
 }
 
 void lcd_clear(void)

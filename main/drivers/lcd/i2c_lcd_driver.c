@@ -2,10 +2,9 @@
 #include "driver/i2c_master.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 
 #define I2C_BUS_PORT I2C_NUM_0
-#define I2C_SDA_GPIO GPIO_NUM_21
-#define I2C_SCL_GPIO GPIO_NUM_22
 #define I2C_MASTER_FREQ_HZ 100000
 #define SLAVE_ADDRESS_LCD 0x27
 #define LCD_BACKLIGHT 0x08
@@ -17,12 +16,12 @@ static esp_err_t lcd_i2c_write(uint8_t *data, size_t len);
 static void lcd_send_nibble(uint8_t nibble);
 static const char* TAG = "I2C_LCD";
 
-esp_err_t i2c_master_init(void)
+esp_err_t i2c_master_init(gpio_num_t pin_sda, gpio_num_t pin_scl)
 {
     i2c_master_bus_config_t bus_config = {
         .i2c_port = I2C_BUS_PORT,
-        .sda_io_num = I2C_SDA_GPIO,
-        .scl_io_num = I2C_SCL_GPIO,
+        .sda_io_num = pin_sda,
+        .scl_io_num = pin_scl,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
@@ -96,9 +95,9 @@ static void lcd_send_nibble(uint8_t nibble)
     esp_rom_delay_us(50);
 }
 
-void lcd_init(void)
+void lcd_init(gpio_num_t pin_sda_, gpio_num_t pin_scl_)
 {
-    ESP_ERROR_CHECK(i2c_master_init());
+    ESP_ERROR_CHECK(i2c_master_init(pin_sda_, pin_scl_));
     
     vTaskDelay(pdMS_TO_TICKS(50));
 
