@@ -36,8 +36,6 @@
 
 #include "app_logic.h"
 
-
-
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
