@@ -40,6 +40,17 @@
 
 void app_main(void)
 {
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(ret);
+    
     app_mutex = xSemaphoreCreateMutex();
     if (app_mutex == NULL) 
     {
@@ -64,12 +75,12 @@ void app_main(void)
                         pin_button_center,
                         pin_button_right,
                         pin_led_2);
+
     xSemaphoreTake(sys_mutex, portMAX_DELAY);
 
     sys.scale.dout = pin_dt_hx711;
     sys.scale.pd_sck = pin_sck_hx711;
     sys.scale.gain = HX711_GAIN_A_128;
-
     ESP_ERROR_CHECK(hx711_init(&sys.scale));
 
     xSemaphoreGive(sys_mutex);
@@ -95,17 +106,6 @@ void app_main(void)
     app.system_ready = true;
     app.screen = APP_IDLE;
     xSemaphoreGive(app_mutex);
-
-    esp_err_t ret = nvs_flash_init();
-
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || 
-        ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-
-    ESP_ERROR_CHECK(ret);
                     
     button_config_t cfg = {
         .debounce_time = 10000,
