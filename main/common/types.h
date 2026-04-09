@@ -9,7 +9,9 @@ typedef enum {
     APP_LOADING,
     APP_IDLE,
     APP_MENU,
-    APP_CALIBRATION
+    APP_CALIB_TARE,
+    APP_CALIB_INPUT,
+    APP_CALIB_DONE
 } app_screen_t;
 
 typedef struct {

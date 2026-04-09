@@ -13,4 +13,8 @@ void editor_handle_event(editor_t *e, app_event_t evt);
 void save_editor_value(int val);
 int load_editor_value(void);
 
+void save_tare_value(int32_t raw);
+
+int32_t get_tare_average_from_app(size_t samples);
+
 #endif // APP_LOGIC_H

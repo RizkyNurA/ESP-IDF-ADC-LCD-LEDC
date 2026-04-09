@@ -27,4 +27,6 @@
 #define EDITOR_ROW 1
 #define EDITOR_COL_START 12
 
+#define SAMPLE_CALIB_VALUE 20
+
 #endif // CONFIG_H

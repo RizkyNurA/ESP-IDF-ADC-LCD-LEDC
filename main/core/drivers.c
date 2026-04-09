@@ -140,8 +140,14 @@ void lcd_task(void *pv)
                 lcd_write_string("Press Center");
                 break;
 
-            case APP_CALIBRATION:
+            case APP_CALIB_TARE:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("TARE");
+                lcd_set_cursor(1, 0);
+                lcd_write_string("Hold=OK");
+                break;
 
+            case APP_CALIB_INPUT:
                 lcd_set_cursor(0, 0);
                 lcd_write_string("CAL:");
 
@@ -159,6 +165,13 @@ void lcd_task(void *pv)
                     else
                         lcd_write_char('0' + digit);
                 }
+                break;
+
+            case APP_CALIB_DONE:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("DONE");
+                lcd_set_cursor(1, 0);
+                lcd_write_string("Hold=Exit");
                 break;
 
             default:
