@@ -84,7 +84,7 @@ void app_main(void)
 
     xSemaphoreGive(sys_mutex);
 
-    lcd_init(I2C_SDA_GPIO, I2C_SCL_GPIO);
+    lcd_init(pin_sda_lcd, pin_scl_lcd);
 
     pwm_timer_init(LEDC_LOW_SPEED_MODE,
                    LEDC_TIMER_0,
