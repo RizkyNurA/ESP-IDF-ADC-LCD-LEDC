@@ -101,10 +101,11 @@ void app_main(void)
     editor_init(&app.editor, load_editor_value());
 
     // tandai selesai
-    xSemaphoreTake(app_mutex, portMAX_DELAY);
-    app.system_ready = true;
+    app.tare  = nvs_load_i32("tare_offset", 0);   // default 0
+    app.calib = nvs_load_i32("calib_value", 1000); // contoh default
+    app.raw = 0;
     app.screen = APP_IDLE;
-    xSemaphoreGive(app_mutex);
+    app.system_ready = true;
                     
     button_config_t cfg = {
         .debounce_time = 10000,

@@ -7,8 +7,8 @@
 
 void app_handle_event(app_state_t *app, app_event_t evt)
 {
-    void save_editor_value(int val);
-    int load_editor_value(void);
+    void nvs_save_i32(const char *key, int32_t val);
+    int32_t nvs_load_i32(const char *key, int32_t def);
     
     switch (app->screen)
     {
@@ -32,10 +32,14 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             {
                 int32_t tare = get_tare_average_from_app(SAMPLE_CALIB_VALUE);
                 ESP_LOGI("tare", "get tare %d", tare);
+
                 app->tare = tare;
                 ESP_LOGI("tare", "save tare %d in global", tare);
-                save_tare_value(app->tare);
+
+                // pakai generik
+                nvs_save_i32("tare_offset", tare);
                 ESP_LOGI("tare", "save tare %d in nvs", tare);
+
                 app->screen = APP_CALIB_INPUT;
             }
             break;
@@ -54,7 +58,10 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             {
                 int32_t calib = editor_get_value(&app->editor);
                 app->calib = calib;
-                save_editor_value(app->calib);
+
+                // generik juga bisa
+                nvs_save_i32("calib_value", calib);
+
                 app->screen = APP_CALIB_DONE;
             }
             break;
@@ -115,6 +122,19 @@ void save_editor_value(int val)
     nvs_close(handle);
 }
 
+int32_t nvs_load_i32(const char *key, int32_t def)
+{
+    nvs_handle_t handle;
+    int32_t val = def;
+
+    if (nvs_open("storage", NVS_READONLY, &handle) == ESP_OK) {
+        nvs_get_i32(handle, key, &val);
+        nvs_close(handle);
+    }
+
+    return val;
+}
+
 int load_editor_value() 
 {
     nvs_handle_t handle;
@@ -124,6 +144,15 @@ int load_editor_value()
         nvs_close(handle);
     }
     return val;
+}
+
+void nvs_save_i32(const char *key, int32_t val)
+{
+    nvs_handle_t handle;
+    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &handle));
+    ESP_ERROR_CHECK(nvs_set_i32(handle, key, val));
+    ESP_ERROR_CHECK(nvs_commit(handle));
+    nvs_close(handle);
 }
 
 void save_tare_value(int32_t raw)
