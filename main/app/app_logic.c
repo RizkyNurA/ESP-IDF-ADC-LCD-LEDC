@@ -3,11 +3,13 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "config.h"
+#include "esp_log.h"
 
 void app_handle_event(app_state_t *app, app_event_t evt)
 {
     void save_editor_value(int val);
     int load_editor_value(void);
+    
     switch (app->screen)
     {
         case APP_LOADING:
@@ -29,7 +31,11 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             if (evt == EVT_CENTER_LONG)
             {
                 int32_t tare = get_tare_average_from_app(SAMPLE_CALIB_VALUE);
-                save_tare_value(tare);
+                ESP_LOGI("tare", "get tare %d", tare);
+                app->tare = tare;
+                ESP_LOGI("tare", "save tare %d in global", tare);
+                save_tare_value(app->tare);
+                ESP_LOGI("tare", "save tare %d in nvs", tare);
                 app->screen = APP_CALIB_INPUT;
             }
             break;
@@ -46,7 +52,9 @@ void app_handle_event(app_state_t *app, app_event_t evt)
 
             else if (evt == EVT_CENTER_LONG)
             {
-                save_editor_value(editor_get_value(&app->editor));
+                int32_t calib = editor_get_value(&app->editor);
+                app->calib = calib;
+                save_editor_value(app->calib);
                 app->screen = APP_CALIB_DONE;
             }
             break;
@@ -138,7 +146,7 @@ int32_t get_tare_average_from_app(size_t samples)
         int32_t val = app.raw;
 
         sum += val;
-        vTaskDelay(pdMS_TO_TICKS(10)); // sinkron dengan task
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     return (int32_t)(sum / samples);

@@ -20,6 +20,9 @@ typedef struct {
     editor_t editor;
     app_screen_t screen;
     bool system_ready;
+    int32_t tare;
+    int32_t calib;
+
 } app_state_t;
 
 typedef enum {

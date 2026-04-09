@@ -125,8 +125,10 @@ void lcd_task(void *pv)
         {
             case APP_IDLE:
                 lcd_set_cursor(0, 0);
-                lcd_write_string("POT:");
-                lcd_write_int(snapshot.duty);
+                lcd_write_string("TR:");
+                lcd_write_int(snapshot.tare);
+                lcd_write_string("CAL:");
+                lcd_write_int(snapshot.calib);
 
                 lcd_set_cursor(1, 0);
                 lcd_write_string("LC :");
