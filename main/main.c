@@ -98,7 +98,7 @@ void app_main(void)
                     pin_led_1, 
                     4000);
 
-    editor_init(&app.editor, load_editor_value());
+    editor_init(&app.editor, nvs_load_i32("editor", 0));
 
     // tandai selesai
     app.tare  = nvs_load_i32("tare_offset", 0);   // default 0

@@ -56,10 +56,10 @@ void app_handle_event(app_state_t *app, app_event_t evt)
 
             else if (evt == EVT_CENTER_LONG)
             {
-                int32_t calib = editor_get_value(&app->editor);
+                int32_t editor = editor_get_value(&app->editor);
+                nvs_save_i32("editor", editor);
+                int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
                 app->calib = calib;
-
-                // generik juga bisa
                 nvs_save_i32("calib_value", calib);
 
                 app->screen = APP_CALIB_DONE;
@@ -113,15 +113,6 @@ void editor_handle_event(editor_t *e, app_event_t evt)
     }
 }
 
-void save_editor_value(int val) 
-{
-    nvs_handle_t handle;
-    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &handle));
-    ESP_ERROR_CHECK(nvs_set_i32(handle, "editor_val", val));
-    ESP_ERROR_CHECK(nvs_commit(handle));
-    nvs_close(handle);
-}
-
 int32_t nvs_load_i32(const char *key, int32_t def)
 {
     nvs_handle_t handle;
@@ -135,17 +126,6 @@ int32_t nvs_load_i32(const char *key, int32_t def)
     return val;
 }
 
-int load_editor_value() 
-{
-    nvs_handle_t handle;
-    int32_t val = 0;
-    if (nvs_open("storage", NVS_READONLY, &handle) == ESP_OK) {
-        nvs_get_i32(handle, "editor_val", &val);
-        nvs_close(handle);
-    }
-    return val;
-}
-
 void nvs_save_i32(const char *key, int32_t val)
 {
     nvs_handle_t handle;
@@ -155,18 +135,7 @@ void nvs_save_i32(const char *key, int32_t val)
     nvs_close(handle);
 }
 
-void save_tare_value(int32_t raw)
-{
-    nvs_handle_t handle;
-    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &handle));
-
-    ESP_ERROR_CHECK(nvs_set_i32(handle, "tare_offset", raw));
-
-    ESP_ERROR_CHECK(nvs_commit(handle));
-    nvs_close(handle);
-}
-
-int32_t get_tare_average_from_app(size_t samples)
+int32_t get_value_average_from_app(size_t samples)
 {
     int64_t sum = 0;
 
