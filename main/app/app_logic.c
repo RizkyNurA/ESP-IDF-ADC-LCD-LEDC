@@ -30,7 +30,7 @@ void app_handle_event(app_state_t *app, app_event_t evt)
         case APP_CALIB_TARE:
             if (evt == EVT_CENTER_LONG)
             {
-                int32_t tare = get_tare_average_from_app(SAMPLE_CALIB_VALUE);
+                int32_t tare = get_value_average_from_app(SAMPLE_CALIB_VALUE);
                 ESP_LOGI("tare", "get tare %d", tare);
 
                 app->tare = tare;
