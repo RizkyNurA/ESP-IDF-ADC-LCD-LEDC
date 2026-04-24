@@ -5,6 +5,7 @@
 #include "lcd.h"
 #include "types.h"
 #include "push_button_driver.h"
+#include "esp_log.h"
 
 #include "app_context.h"
 #include "freertos/FreeRTOS.h"
@@ -197,6 +198,7 @@ void hx711_task(void *pv)
         {
             xSemaphoreTake(app_mutex, portMAX_DELAY);
             hx711_read_data(scale, &app.raw);
+            ESP_LOGI("raw", "%d", app.raw);
             xSemaphoreGive(app_mutex);
         }
 

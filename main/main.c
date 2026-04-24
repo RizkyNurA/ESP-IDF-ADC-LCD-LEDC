@@ -86,17 +86,17 @@ void app_main(void)
 
     lcd_init(pin_sda_lcd, pin_scl_lcd);
 
-    pwm_timer_init(LEDC_LOW_SPEED_MODE,
-                   LEDC_TIMER_0,
-                   LEDC_TIMER_13_BIT,
-                   4000,
-                   LEDC_AUTO_CLK);
+    // pwm_timer_init(LEDC_LOW_SPEED_MODE,
+    //                LEDC_TIMER_0,
+    //                LEDC_TIMER_13_BIT,
+    //                4000,
+    //                LEDC_AUTO_CLK);
 
-    pwm_channel_init(LEDC_LOW_SPEED_MODE, 
-                    LEDC_CHANNEL_2, 
-                    LEDC_TIMER_0, 
-                    pin_led_1, 
-                    4000);
+    // pwm_channel_init(LEDC_LOW_SPEED_MODE, 
+    //                 LEDC_CHANNEL_2, 
+    //                 LEDC_TIMER_0, 
+    //                 pin_led_1, 
+    //                 4000);
 
     editor_init(&app.editor, nvs_load_i32("editor", 0));
 
@@ -129,10 +129,10 @@ void app_main(void)
     
     xTaskCreate(app_task, "app", 4096, NULL, 6, NULL);
     xTaskCreate(button_task, "btn", 2048, &btn_group, 5, NULL);
-    xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
+    // xTaskCreate(adc_task, "adc", 2048, NULL, 5, NULL);
     xTaskCreate(hx711_task, "hx", 2048, &sys.scale, 6, NULL);
     xTaskCreate(lcd_task, "lcd", 4096, NULL, 3, NULL);
-    xTaskCreate(led_task, "led", 1024, NULL, 2, NULL);
+    // xTaskCreate(led_task, "led", 1024, NULL, 2, NULL);
     
     vTaskDelete(NULL);
 }

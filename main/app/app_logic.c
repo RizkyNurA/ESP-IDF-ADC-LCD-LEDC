@@ -59,6 +59,7 @@ void app_handle_event(app_state_t *app, app_event_t evt)
                 int32_t editor = editor_get_value(&app->editor);
                 nvs_save_i32("editor", editor);
                 int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
+                ESP_LOGI("calib", "%d", calib);
                 app->calib = calib;
                 nvs_save_i32("calib_value", calib);
 
