@@ -6,8 +6,7 @@
 
 void GPIO_Initialation(gpio_num_t left_button, 
                         gpio_num_t center_button,
-                        gpio_num_t right_button,
-                        gpio_num_t second_led);
+                        gpio_num_t right_button);
 
 void app_task(void *pv);
 
