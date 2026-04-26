@@ -72,8 +72,8 @@ void app_main(void)
 
     GPIO_Initialation(  pin_button_left,
                         pin_button_center,
-                        pin_button_right,
-                        pin_led_2);
+                        pin_button_right
+                        );
 
     xSemaphoreTake(sys_mutex, portMAX_DELAY);
 

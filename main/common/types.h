@@ -10,7 +10,9 @@ typedef enum {
     APP_IDLE,
     APP_MENU,
     APP_CALIB_TARE,
+    APP_CALIB_TARE_WAIT,
     APP_CALIB_INPUT,
+    APP_CALIB_INPUT_WAIT,
     APP_CALIB_DONE
 } app_screen_t;
 
@@ -22,14 +24,22 @@ typedef struct {
     bool system_ready;
     int32_t tare;
     int32_t calib;
+    int32_t wait_counter;
 
 } app_state_t;
 
 typedef enum {
-    EVT_LEFT,
-    EVT_RIGHT,
+    EVT_LEFT_SHORT,
+    EVT_LEFT_LONG,
+    EVT_LEFT_VERY_LONG,
+
+    EVT_RIGHT_SHORT,
+    EVT_RIGHT_LONG,
+    EVT_RIGHT_VERY_LONG,
+
     EVT_CENTER_SHORT,
-    EVT_CENTER_LONG
+    EVT_CENTER_LONG,
+    EVT_CENTER_VERY_LONG
 } app_event_t;
 
 typedef struct {

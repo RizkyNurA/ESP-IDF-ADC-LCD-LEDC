@@ -20,8 +20,7 @@ static app_screen_t last_screen = APP_LOADING;
 
 void GPIO_Initialation(gpio_num_t left_button, 
                         gpio_num_t center_button,
-                        gpio_num_t right_button,
-                        gpio_num_t second_led)
+                        gpio_num_t right_button)
 {
     gpio_reset_pin(left_button);
     gpio_set_direction(left_button, GPIO_MODE_INPUT);
@@ -32,9 +31,9 @@ void GPIO_Initialation(gpio_num_t left_button,
     gpio_reset_pin(right_button);
     gpio_set_direction(right_button, GPIO_MODE_INPUT);
     
-    gpio_reset_pin(second_led);
-    gpio_set_direction(second_led, GPIO_MODE_OUTPUT);
-    gpio_set_level(second_led, 1);
+    // gpio_reset_pin(second_led);
+    // gpio_set_direction(second_led, GPIO_MODE_OUTPUT);
+    // gpio_set_level(second_led, 1);
     
 }
 
@@ -55,38 +54,38 @@ void app_task(void *pv)
     }
 }
 
-void adc_task(void *pv)
-{
-    adc_unit_handle_custom_t adc1;
-    adc_channel_handle_custom_t ch0;
+// void adc_task(void *pv)
+// {
+//     adc_unit_handle_custom_t adc1;
+//     adc_channel_handle_custom_t ch0;
 
-    adc_unit_init(&adc1, ADC_UNIT_1);
-    adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
+//     adc_unit_init(&adc1, ADC_UNIT_1);
+//     adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
 
-    while (1)
-    {
-        int vp = adc_read_raw(&adc1, &ch0);
-        uint32_t duty_local = (vp * 8191) / 4095;
+//     while (1)
+//     {
+//         int vp = adc_read_raw(&adc1, &ch0);
+//         uint32_t duty_local = (vp * 8191) / 4095;
 
-        xSemaphoreTake(app_mutex, portMAX_DELAY);
-        app.duty = duty_local;
-        xSemaphoreGive(app_mutex);
+//         xSemaphoreTake(app_mutex, portMAX_DELAY);
+//         app.duty = duty_local;
+//         xSemaphoreGive(app_mutex);
 
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty_local);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
+//         ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty_local);
+//         ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
 
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
+//         vTaskDelay(pdMS_TO_TICKS(100));
+//     }
+// }
 
-void led_task(void *pv)
-{
-    while (1)
-    {
-        gpio_set_level(pin_led_2, toggle_state);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
+// void led_task(void *pv)
+// {
+//     while (1)
+//     {
+//         gpio_set_level(pin_led_2, toggle_state);
+//         vTaskDelay(pdMS_TO_TICKS(10));
+//     }
+// }
 
 void lcd_task(void *pv)
 {
@@ -150,6 +149,19 @@ void lcd_task(void *pv)
                 lcd_write_string("Hold=OK");
                 break;
 
+            case APP_CALIB_TARE_WAIT:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("TARE...");
+
+                lcd_set_cursor(1, 0);
+                lcd_write_string("Wait");
+
+                if (blink_state)
+                    lcd_write_string("...");
+                else
+                    lcd_write_string("   ");
+                break;
+
             case APP_CALIB_INPUT:
                 lcd_set_cursor(0, 0);
                 lcd_write_string("CAL:");
@@ -168,6 +180,19 @@ void lcd_task(void *pv)
                     else
                         lcd_write_char('0' + digit);
                 }
+                break;
+
+            case APP_CALIB_INPUT_WAIT:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("CAL...");
+
+                lcd_set_cursor(1, 0);
+                lcd_write_string("Sampling");
+
+                if (blink_state)
+                    lcd_write_string("...");
+                else
+                    lcd_write_string("   ");
                 break;
 
             case APP_CALIB_DONE:
@@ -232,17 +257,41 @@ void button_task(void *pv)
 
 void left_button_handler(press_type_t event) 
 {
-    if (event != PRESS_SHORT) return;
+    app_event_t evt;
 
-    app_event_t evt = EVT_LEFT;
+    if (event == PRESS_SHORT) {
+        evt = EVT_LEFT_SHORT;
+    } 
+    else if (event == PRESS_LONG) {
+        evt = EVT_LEFT_LONG;
+    }
+    else if (event == PRESS_VERY_LONG) {
+        evt = EVT_LEFT_VERY_LONG;
+    } 
+    else {
+        return;
+    }
+
     xQueueSend(app_queue, &evt, 0);
 }
 
 void right_button_handler(press_type_t event) 
 {
-    if (event != PRESS_SHORT) return;
+    app_event_t evt;
 
-    app_event_t evt = EVT_RIGHT;
+    if (event == PRESS_SHORT) {
+        evt = EVT_RIGHT_SHORT;
+    } 
+    else if (event == PRESS_LONG) {
+        evt = EVT_RIGHT_LONG;
+    }
+    else if (event == PRESS_VERY_LONG) {
+        evt = EVT_RIGHT_VERY_LONG;
+    } 
+    else {
+        return;
+    }
+
     xQueueSend(app_queue, &evt, 0);
 }
 
@@ -253,8 +302,11 @@ void center_button_handler(press_type_t event)
     if (event == PRESS_SHORT) {
         evt = EVT_CENTER_SHORT;
     } 
-    else if (event == PRESS_VERY_LONG) {
+    else if (event == PRESS_LONG) {
         evt = EVT_CENTER_LONG;
+    }
+    else if (event == PRESS_VERY_LONG) {
+        evt = EVT_CENTER_VERY_LONG;
     } 
     else {
         return;

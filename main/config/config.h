@@ -4,17 +4,17 @@
 #include "driver/gpio.h"
 
 //#define pin_potensio ADC_CHANNEL_0 //VP
-#define pin_sck_hx711 GPIO_NUM_34
-#define pin_dt_hx711 GPIO_NUM_18
+#define pin_sck_hx711   GPIO_NUM_18
+#define pin_dt_hx711    GPIO_NUM_34
 
-#define pin_sck_hx711_2 GPIO_NUM_35
-#define pin_dt_hx711_2 GPIO_NUM_19
+#define pin_sck_hx711_2 GPIO_NUM_19
+#define pin_dt_hx711_2  GPIO_NUM_35
 
-#define pin_sck_hx711_3 GPIO_NUM_36
-#define pin_dt_hx711_3 GPIO_NUM_25
+#define pin_sck_hx711_3 GPIO_NUM_23
+#define pin_dt_hx711_3  GPIO_NUM_36
 
-#define pin_sck_hx711_3 GPIO_NUM_39
-#define pin_dt_hx711_3 GPIO_NUM_26
+#define pin_sck_hx711_4 GPIO_NUM_5
+#define pin_dt_hx711_4  GPIO_NUM_39
 
 // #define pin_led_1 GPIO_NUM_2
 // #define pin_led_2 GPIO_NUM_19

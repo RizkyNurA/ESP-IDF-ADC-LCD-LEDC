@@ -121,4 +121,3 @@ void lcd_init(gpio_num_t pin_sda_, gpio_num_t pin_scl_)
     lcd_send_cmd(0x0C);
     vTaskDelay(pdMS_TO_TICKS(10));
 }
-
