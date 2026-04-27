@@ -7,6 +7,12 @@
 
 void app_update(app_state_t *app)
 {
+    int32_t known = editor_get_value(&app->editor);
+
+    app->weight = calculate_weight(app->raw, app->tare, app->calib, known);
+
+    ESP_LOGI("weight", "%f", app->weight);
+
     switch (app->screen)
     {
         case APP_CALIB_TARE_WAIT:
@@ -191,4 +197,15 @@ int32_t get_value_average_from_app(size_t samples)
     }
 
     return (int32_t)(sum / samples);
+}
+
+float calculate_weight(int32_t raw, int32_t tare, int32_t calib, int32_t known_weight)
+{
+    int32_t delta_calib = calib - tare;
+
+    if (delta_calib == 0) return 0.0f;
+
+    float scale = (float)known_weight / (float)delta_calib;
+
+    return (raw - tare) * scale;
 }

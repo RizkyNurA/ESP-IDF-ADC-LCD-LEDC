@@ -25,6 +25,7 @@ typedef struct {
     int32_t tare;
     int32_t calib;
     int32_t wait_counter;
+    float weight;
 
 } app_state_t;
 

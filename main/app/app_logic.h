@@ -17,4 +17,6 @@ int32_t get_value_average_from_app(size_t samples);
 
 void app_update(app_state_t *app);
 
+float calculate_weight(int32_t raw, int32_t tare, int32_t calib, int32_t known_weight);
+
 #endif // APP_LOGIC_H
