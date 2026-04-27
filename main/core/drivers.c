@@ -103,6 +103,7 @@ void lcd_task(void *pv)
         app_state_t snapshot;
 
         xSemaphoreTake(app_mutex, portMAX_DELAY);
+        app_update(&app);
         snapshot = app;
         xSemaphoreGive(app_mutex);
 

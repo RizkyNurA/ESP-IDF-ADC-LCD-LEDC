@@ -5,16 +5,55 @@
 #include "config.h"
 #include "esp_log.h"
 
+void app_update(app_state_t *app)
+{
+    switch (app->screen)
+    {
+        case APP_CALIB_TARE_WAIT:
+            app->wait_counter++;
+
+            if (app->wait_counter > 50)
+            {
+                int32_t tare = get_value_average_from_app(SAMPLE_CALIB_VALUE);
+
+                app->tare = tare;
+                nvs_save_i32("tare_offset", tare);
+
+                app->screen = APP_CALIB_INPUT;
+            }
+            break;
+
+        case APP_CALIB_INPUT_WAIT:
+            app->wait_counter++;
+
+            if (app->wait_counter > 50)
+            {
+                int32_t editor = editor_get_value(&app->editor);
+                nvs_save_i32("editor", editor);
+
+                int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
+                app->calib = calib;
+                nvs_save_i32("calib_value", calib);
+
+                app->screen = APP_CALIB_DONE;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
 void app_handle_event(app_state_t *app, app_event_t evt)
 {
     void nvs_save_i32(const char *key, int32_t val);
     int32_t nvs_load_i32(const char *key, int32_t def);
-    
+
     switch (app->screen)
     {
         case APP_LOADING:
             break;
-            
+
         case APP_IDLE:
             if (evt == EVT_CENTER_SHORT)
                 app->screen = APP_MENU;
@@ -23,26 +62,18 @@ void app_handle_event(app_state_t *app, app_event_t evt)
         case APP_MENU:
             if (evt == EVT_CENTER_SHORT)
                 app->screen = APP_CALIB_TARE;
+
             else if (evt == EVT_CENTER_LONG)
                 app->screen = APP_IDLE;
             break;
 
         case APP_CALIB_TARE:
-            if (evt == EVT_CENTER_LONG)
-            {
-                int32_t tare = get_value_average_from_app(SAMPLE_CALIB_VALUE);
-                ESP_LOGI("tare", "get tare %d", tare);
-
-                app->tare = tare;
-                ESP_LOGI("tare", "save tare %d in global", tare);
-
-                // pakai generik
-                nvs_save_i32("tare_offset", tare);
-                ESP_LOGI("tare", "save tare %d in nvs", tare);
-
-                app->screen = APP_CALIB_INPUT;
-            }
             if (evt == EVT_LEFT_SHORT)
+            {
+                app->wait_counter = 0;
+                app->screen = APP_CALIB_TARE_WAIT;
+            }
+            else if (evt == EVT_CENTER_LONG)
             {
                 app->wait_counter = 0;
                 app->screen = APP_CALIB_TARE_WAIT;
@@ -50,68 +81,37 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             break;
 
         case APP_CALIB_TARE_WAIT:
-        app->wait_counter++;
-
-        if (app->wait_counter > 50)
-        {
-            int32_t tare = get_value_average_from_app(SAMPLE_CALIB_VALUE);
-            ESP_LOGI("tare", "get tare %d", tare);
-
-            app->tare = tare;
-            nvs_save_i32("tare_offset", tare);
-
-            app->screen = APP_CALIB_INPUT;
-        }
-        break;
+            break;
 
         case APP_CALIB_INPUT:
             if (evt == EVT_LEFT_SHORT)
-                editor_move_left(&app->editor);
-
-            else if (evt == EVT_RIGHT_SHORT)
-                editor_move_right(&app->editor);
-
-            else if (evt == EVT_CENTER_SHORT)
-                editor_toggle_mode(&app->editor);
-
-            else if (evt == EVT_CENTER_LONG)
             {
-                int32_t editor = editor_get_value(&app->editor);
-                nvs_save_i32("editor", editor);
-                int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
-                ESP_LOGI("calib", "%d", calib);
-                app->calib = calib;
-                nvs_save_i32("calib_value", calib);
-
-                app->screen = APP_CALIB_DONE;
+                editor_move_left(&app->editor);
             }
-            else if (evt == EVT_LEFT_SHORT)
+            else if (evt == EVT_RIGHT_SHORT)
+            {
+                editor_move_right(&app->editor);
+            }
+            else if (evt == EVT_CENTER_SHORT)
+            {
+                editor_toggle_mode(&app->editor);
+            }
+            else if (evt == EVT_CENTER_LONG)
             {
                 app->wait_counter = 0;
                 app->screen = APP_CALIB_INPUT_WAIT;
             }
-            
             break;
 
         case APP_CALIB_INPUT_WAIT:
-        app->wait_counter++;
-
-        if (app->wait_counter > 50)
-        {
-            int32_t editor = editor_get_value(&app->editor);
-            nvs_save_i32("editor", editor);
-
-            int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
-            app->calib = calib;
-            nvs_save_i32("calib_value", calib);
-
-            app->screen = APP_CALIB_DONE;
-        }
-        break;
+            break;
 
         case APP_CALIB_DONE:
             if (evt == EVT_CENTER_LONG)
-            app->screen = APP_IDLE;
+                app->screen = APP_IDLE;
+            break;
+
+        default:
             break;
     }
 }

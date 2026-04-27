@@ -15,4 +15,6 @@ int32_t nvs_load_i32(const char *key, int32_t def);
 
 int32_t get_value_average_from_app(size_t samples);
 
+void app_update(app_state_t *app);
+
 #endif // APP_LOGIC_H
