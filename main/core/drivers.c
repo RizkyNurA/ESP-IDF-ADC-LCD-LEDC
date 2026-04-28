@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include "config.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
@@ -92,6 +93,8 @@ void lcd_task(void *pv)
     bool blink_state = false;
     uint8_t blink_counter = 0;
 
+    static uint8_t page = 0; // untuk paging >2 sensor
+
     while (1)
     {
         blink_counter++;
@@ -125,45 +128,119 @@ void lcd_task(void *pv)
         switch (snapshot.screen)
         {
             case APP_IDLE:
-                lcd_set_cursor(0, 0);
-                lcd_write_string("TR:");
-                lcd_write_int(snapshot.tare);
-                lcd_write_string("CAL:");
-                lcd_write_int(snapshot.calib);
+            {
+                int total = CONFIG_NUM_LOADCELL;
 
-                lcd_set_cursor(1, 0);
-                lcd_write_string("LC :");
-                lcd_write_int(snapshot.raw);
-                break;
+                lcd_clear_row(0);
+                lcd_clear_row(1);
+
+                // =========================
+                // 1 SENSOR
+                // =========================
+                if (total == 1)
+                {
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("L0:");
+                    lcd_write_float(snapshot.lc[0].weight, 2);
+
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("RAW:");
+                    lcd_write_int((int)snapshot.lc[0].raw);
+                }
+
+                // =========================
+                // 2 SENSOR
+                // =========================
+                else if (total == 2)
+                {
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("L0:");
+                    lcd_write_float(snapshot.lc[0].weight, 2);
+
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("L1:");
+                    lcd_write_float(snapshot.lc[1].weight, 2);
+                }
+
+                // =========================
+                // 3 SENSOR
+                // =========================
+                else if (total == 3)
+                {
+                    // baris atas: L0 & L2
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("L0:");
+                    lcd_write_float(snapshot.lc[0].weight, 2);
+
+                    lcd_set_cursor(0, 8);
+                    lcd_write_string("L2:");
+                    lcd_write_float(snapshot.lc[2].weight, 2);
+
+                    // baris bawah: L1
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("L1:");
+                    lcd_write_float(snapshot.lc[1].weight, 2);
+                }
+
+                // =========================
+                // 4 SENSOR
+                // =========================
+                else
+                {
+                    // atas: L0 & L2
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("L0:");
+                    lcd_write_float(snapshot.lc[0].weight, 2);
+
+                    lcd_set_cursor(0, 8);
+                    lcd_write_string("L2:");
+                    lcd_write_float(snapshot.lc[2].weight, 2);
+
+                    // bawah: L1 & L3
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("L1:");
+                    lcd_write_float(snapshot.lc[1].weight, 2);
+
+                    lcd_set_cursor(1, 8);
+                    lcd_write_string("L3:");
+                    lcd_write_float(snapshot.lc[3].weight, 2);
+                }
+            }
+            break;
 
             case APP_MENU:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("MENU");
+
+                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Press Center");
                 break;
 
             case APP_CALIB_TARE:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("TARE");
+
+                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Hold=OK");
                 break;
 
             case APP_CALIB_TARE_WAIT:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("TARE...");
 
+                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Wait");
-
-                if (blink_state)
-                    lcd_write_string("...");
-                else
-                    lcd_write_string("   ");
+                if (blink_state) lcd_write_string("...");
                 break;
 
             case APP_CALIB_INPUT:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("CAL:");
 
@@ -184,21 +261,22 @@ void lcd_task(void *pv)
                 break;
 
             case APP_CALIB_INPUT_WAIT:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("CAL...");
 
+                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Sampling");
-
-                if (blink_state)
-                    lcd_write_string("...");
-                else
-                    lcd_write_string("   ");
+                if (blink_state) lcd_write_string("...");
                 break;
 
             case APP_CALIB_DONE:
+                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
                 lcd_write_string("DONE");
+
+                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Hold=Exit");
                 break;
@@ -213,18 +291,20 @@ void lcd_task(void *pv)
 
 void hx711_task(void *pv)
 {
-    hx711_t *scale = (hx711_t *)pv;
+    hx711_ctx_t *ctx = (hx711_ctx_t *)pv;
     bool ready;
 
     while (1)
     {
-        hx711_is_ready(scale, &ready);
+        hx711_is_ready(ctx->scale, &ready);
 
         if (ready)
         {
+            int32_t val;
+            hx711_read_data(ctx->scale, &val);
+
             xSemaphoreTake(app_mutex, portMAX_DELAY);
-            hx711_read_data(scale, &app.raw);
-            ESP_LOGI("raw", "%d", app.raw);
+            app.lc[ctx->index].raw = val;
             xSemaphoreGive(app_mutex);
         }
 

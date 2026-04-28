@@ -15,6 +15,8 @@ idf_component_register(
         "drivers/lcd/i2c_lcd_driver.c"
         "drivers/lcd/lcd.c"
         "drivers/led/led_driver.c"
+        
+        "common/utils.c"
 
     INCLUDE_DIRS 
         "."

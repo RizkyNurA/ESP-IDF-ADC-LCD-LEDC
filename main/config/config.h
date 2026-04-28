@@ -16,6 +16,8 @@
 #define pin_sck_hx711_4 GPIO_NUM_5
 #define pin_dt_hx711_4  GPIO_NUM_39
 
+#define CONFIG_NUM_LOADCELL 4
+
 // #define pin_led_1 GPIO_NUM_2
 // #define pin_led_2 GPIO_NUM_19
 
@@ -38,7 +40,7 @@
 #define EDITOR_CHAR_MAX 9
 #define EDITOR_CHAR_RANGE (EDITOR_CHAR_MAX - EDITOR_CHAR_MIN + 1)
 #define EDITOR_ROW 1
-#define EDITOR_COL_START 12
+#define EDITOR_COL_START 0
 
 #define SAMPLE_CALIB_VALUE 20
 

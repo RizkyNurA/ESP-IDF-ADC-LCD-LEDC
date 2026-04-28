@@ -4,15 +4,30 @@
 #include "nvs.h"
 #include "config.h"
 #include "esp_log.h"
+#include "utils.h"
+
+static int32_t get_average_single_sensor(int index, size_t samples);
 
 void app_update(app_state_t *app)
 {
     int32_t known = editor_get_value(&app->editor);
 
-    app->weight = calculate_weight(app->raw, app->tare, app->calib, known);
+    // =========================
+    // HITUNG WEIGHT PER SENSOR
+    // =========================
+    for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+    {
+        app->lc[i].weight = calculate_weight(
+            app->lc[i].raw,
+            app->lc[i].tare,
+            app->lc[i].calib,
+            known
+        );
+    }
 
-    ESP_LOGI("weight", "%f", app->weight);
-
+    // =========================
+    // STATE MACHINE
+    // =========================
     switch (app->screen)
     {
         case APP_CALIB_TARE_WAIT:
@@ -20,10 +35,17 @@ void app_update(app_state_t *app)
 
             if (app->wait_counter > 50)
             {
-                int32_t tare = get_value_average_from_app(SAMPLE_CALIB_VALUE);
+                char key[16];
 
-                app->tare = tare;
-                nvs_save_i32("tare_offset", tare);
+                for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+                {
+                    int32_t tare = get_average_single_sensor(i, SAMPLE_CALIB_VALUE);
+
+                    app->lc[i].tare = tare;
+
+                    make_nvs_key(key, sizeof(key), "tare", i);
+                    nvs_save_i32(key, tare);
+                }
 
                 app->screen = APP_CALIB_INPUT;
             }
@@ -34,12 +56,20 @@ void app_update(app_state_t *app)
 
             if (app->wait_counter > 50)
             {
+                char key[16];
+
                 int32_t editor = editor_get_value(&app->editor);
                 nvs_save_i32("editor", editor);
 
-                int32_t calib = get_value_average_from_app(SAMPLE_CALIB_VALUE);
-                app->calib = calib;
-                nvs_save_i32("calib_value", calib);
+                for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+                {
+                    int32_t calib = get_average_single_sensor(i, SAMPLE_CALIB_VALUE);
+
+                    app->lc[i].calib = calib;
+
+                    make_nvs_key(key, sizeof(key), "calib", i);
+                    nvs_save_i32(key, calib);
+                }
 
                 app->screen = APP_CALIB_DONE;
             }
@@ -184,15 +214,13 @@ void nvs_save_i32(const char *key, int32_t val)
     nvs_close(handle);
 }
 
-int32_t get_value_average_from_app(size_t samples)
+static int32_t get_average_single_sensor(int index, size_t samples)
 {
     int64_t sum = 0;
 
     for (size_t i = 0; i < samples; i++)
     {
-        int32_t val = app.raw;
-
-        sum += val;
+        sum += app.lc[index].raw;  // ambil raw masing-masing
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 

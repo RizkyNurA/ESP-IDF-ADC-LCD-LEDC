@@ -95,6 +95,27 @@ void lcd_write_float(float num, int decimal_places)
     }
 }
 
+void lcd_write_float_2d(float val)
+{
+    if (val < 0) {
+        lcd_write_char('-');
+        val = -val;
+    }
+
+    int int_part = (int)val;
+    int frac = (int)((val - int_part) * 100);
+
+    // paksa 2 digit integer
+    lcd_write_char('0' + (int_part / 10) % 10);
+    lcd_write_char('0' + int_part % 10);
+
+    lcd_write_char('.');
+
+    // paksa 2 digit decimal
+    lcd_write_char('0' + (frac / 10) % 10);
+    lcd_write_char('0' + frac % 10);
+}
+
 // ================= CONTROL =================
 
 void lcd_display_on(bool cursor, bool blink)

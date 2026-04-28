@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "editor.h"
 #include "hx711_driver.h"
+#include "config.h"
 
 typedef enum {
     APP_LOADING,
@@ -17,17 +18,27 @@ typedef enum {
 } app_screen_t;
 
 typedef struct {
-    uint32_t duty;
     int32_t raw;
+    int32_t tare;
+    int32_t calib;
+    float   weight;
+} loadcell_t;
+
+typedef struct {
+    uint32_t duty;
     editor_t editor;
     app_screen_t screen;
     bool system_ready;
-    int32_t tare;
-    int32_t calib;
     int32_t wait_counter;
-    float weight;
+    loadcell_t lc[CONFIG_NUM_LOADCELL];
+    uint8_t lc_index;
+    int current_lc;
 
 } app_state_t;
+typedef struct {
+    hx711_t *scale;
+    int index; // 0 atau 1
+} hx711_ctx_t;
 
 typedef enum {
     EVT_LEFT_SHORT,

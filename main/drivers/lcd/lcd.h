@@ -24,6 +24,7 @@ void lcd_write_float(float num, int decimal_places);
 void lcd_display_on(bool cursor, bool blink);
 void lcd_shift_cursor_left(void);
 void lcd_shift_cursor_right(void);
+void lcd_write_float_2d(float val);
 
 // custom
 void lcd_create_char(uint8_t location, uint8_t *pattern);
