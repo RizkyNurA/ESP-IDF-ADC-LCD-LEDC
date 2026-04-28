@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct {
     uint16_t value;
-    uint8_t cursor_index;;
+    uint8_t cursor_index;
     ui_state_t state;
 } editor_t;
 

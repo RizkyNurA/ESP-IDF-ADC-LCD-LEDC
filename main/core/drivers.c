@@ -140,12 +140,12 @@ void lcd_task(void *pv)
                 if (total == 1)
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight, 2);
-
-                    lcd_set_cursor(1, 0);
                     lcd_write_string("RAW:");
                     lcd_write_int((int)snapshot.lc[0].raw);
+
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("W:");
+                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2); // KG
                 }
 
                 // =========================
@@ -155,11 +155,11 @@ void lcd_task(void *pv)
                 {
                     lcd_set_cursor(0, 0);
                     lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight, 2);
+                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
 
                     lcd_set_cursor(1, 0);
                     lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight, 2);
+                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
                 // =========================
@@ -167,19 +167,17 @@ void lcd_task(void *pv)
                 // =========================
                 else if (total == 3)
                 {
-                    // baris atas: L0 & L2
                     lcd_set_cursor(0, 0);
                     lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight, 2);
+                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
 
                     lcd_set_cursor(0, 8);
                     lcd_write_string("L2:");
-                    lcd_write_float(snapshot.lc[2].weight, 2);
+                    lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
 
-                    // baris bawah: L1
                     lcd_set_cursor(1, 0);
                     lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight, 2);
+                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
                 // =========================
@@ -187,23 +185,21 @@ void lcd_task(void *pv)
                 // =========================
                 else
                 {
-                    // atas: L0 & L2
                     lcd_set_cursor(0, 0);
                     lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight, 2);
+                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
 
                     lcd_set_cursor(0, 8);
                     lcd_write_string("L2:");
-                    lcd_write_float(snapshot.lc[2].weight, 2);
+                    lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
 
-                    // bawah: L1 & L3
                     lcd_set_cursor(1, 0);
                     lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight, 2);
+                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
 
                     lcd_set_cursor(1, 8);
                     lcd_write_string("L3:");
-                    lcd_write_float(snapshot.lc[3].weight, 2);
+                    lcd_write_float(snapshot.lc[3].weight / 1000.0f, 2);
                 }
             }
             break;
@@ -244,7 +240,7 @@ void lcd_task(void *pv)
                 lcd_set_cursor(0, 0);
                 lcd_write_string("CAL:");
 
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < 5; i++)
                 {
                     uint8_t digit = editor_get_digit(&snapshot.editor, i);
                     uint8_t col = EDITOR_COL_START + i;

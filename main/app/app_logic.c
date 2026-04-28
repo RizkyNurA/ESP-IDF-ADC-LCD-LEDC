@@ -13,7 +13,13 @@ void app_update(app_state_t *app)
     int32_t known = editor_get_value(&app->editor);
 
     // =========================
-    // HITUNG WEIGHT PER SENSOR
+    // LIMIT 5 DIGIT (GRAM)
+    // =========================
+    if (known < 0) known = 0;
+    if (known > 99999) known = 99999;
+
+    // =========================
+    // HITUNG WEIGHT PER SENSOR (GRAM)
     // =========================
     for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
     {
@@ -26,7 +32,7 @@ void app_update(app_state_t *app)
     }
 
     // =========================
-    // STATE MACHINE
+    // STATE MACHINE (TETAP)
     // =========================
     switch (app->screen)
     {
@@ -59,6 +65,11 @@ void app_update(app_state_t *app)
                 char key[16];
 
                 int32_t editor = editor_get_value(&app->editor);
+
+                // SAVE DALAM GRAM
+                if (editor < 0) editor = 0;
+                if (editor > 99999) editor = 99999;
+
                 nvs_save_i32("editor", editor);
 
                 for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
@@ -157,10 +168,10 @@ void editor_handle_event(editor_t *e, app_event_t evt)
     switch (e->state)
     {
         case UI_NAV:
-            if (evt == EVT_LEFT_SHORT && e->cursor_index > 12) {
+            if (evt == EVT_LEFT_SHORT && e->cursor_index > 0) {
                 e->cursor_index--;
             }
-            else if (evt == EVT_RIGHT_SHORT && e->cursor_index < 15) {
+            else if (evt == EVT_RIGHT_SHORT && e->cursor_index < 5) {
                 e->cursor_index++;
             }
             else if (evt == EVT_CENTER_SHORT) {

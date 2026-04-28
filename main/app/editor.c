@@ -1,7 +1,7 @@
 #include "editor.h"
 
 #define DIGIT_MIN 0
-#define DIGIT_MAX 3
+#define DIGIT_MAX 5
 
 static int get_place(uint8_t index)
 {
