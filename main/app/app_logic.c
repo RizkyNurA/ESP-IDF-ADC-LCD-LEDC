@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "utils.h"
 
+#define KNOWN_MAX 999999
+
 static int32_t get_average_single_sensor(int index, size_t samples);
 
 void app_update(app_state_t *app)
@@ -15,8 +17,9 @@ void app_update(app_state_t *app)
     // =========================
     // LIMIT 5 DIGIT (GRAM)
     // =========================
+   
     if (known < 0) known = 0;
-    if (known > 99999) known = 99999;
+    if (known > KNOWN_MAX) known = KNOWN_MAX;
 
     // =========================
     // HITUNG WEIGHT PER SENSOR (GRAM)
@@ -67,8 +70,8 @@ void app_update(app_state_t *app)
                 int32_t editor = editor_get_value(&app->editor);
 
                 // SAVE DALAM GRAM
-                if (editor < 0) editor = 0;
-                if (editor > 99999) editor = 99999;
+                if (known < 0) known = 0;
+                if (known > KNOWN_MAX) known = KNOWN_MAX;
 
                 nvs_save_i32("editor", editor);
 
@@ -93,6 +96,7 @@ void app_update(app_state_t *app)
 
 void app_handle_event(app_state_t *app, app_event_t evt)
 {
+    ESP_LOGI("BTN", "event = %d", evt);
     void nvs_save_i32(const char *key, int32_t val);
     int32_t nvs_load_i32(const char *key, int32_t def);
 
@@ -131,19 +135,9 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             break;
 
         case APP_CALIB_INPUT:
-            if (evt == EVT_LEFT_SHORT)
-            {
-                editor_move_left(&app->editor);
-            }
-            else if (evt == EVT_RIGHT_SHORT)
-            {
-                editor_move_right(&app->editor);
-            }
-            else if (evt == EVT_CENTER_SHORT)
-            {
-                editor_toggle_mode(&app->editor);
-            }
-            else if (evt == EVT_CENTER_LONG)
+            editor_handle_event(&app->editor, evt);
+
+            if (evt == EVT_CENTER_LONG)
             {
                 app->wait_counter = 0;
                 app->screen = APP_CALIB_INPUT_WAIT;

@@ -9,6 +9,7 @@
 typedef enum {
     APP_LOADING,
     APP_IDLE,
+    APP_4LC,
     APP_MENU,
     APP_CALIB_TARE,
     APP_CALIB_TARE_WAIT,
