@@ -114,6 +114,9 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             if (evt == EVT_CENTER_SHORT)
                 app->screen = APP_CALIB_TARE;
 
+            else if (evt == EVT_LEFT_SHORT)
+                app->screen = APP_MONITOR;
+
             else if (evt == EVT_CENTER_LONG)
                 app->screen = APP_IDLE;
             break;

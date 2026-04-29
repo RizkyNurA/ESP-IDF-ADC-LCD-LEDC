@@ -81,17 +81,26 @@ void lcd_write_float(float num, int decimal_places)
         num = -num;
     }
 
-    int int_part = (int)num;
-    float frac = num - int_part;
+    int scale = 1;
+    for (int i = 0; i < decimal_places; i++)
+        scale *= 10;
+
+    // rounding
+    int scaled = (int)(num * scale + 0.5f);
+
+    int int_part = scaled / scale;
+    int frac_part = scaled % scale;
 
     lcd_write_int(int_part);
     lcd_send_data('.');
 
-    for (int i = 0; i < decimal_places; i++) {
-        frac *= 10;
-        int digit = (int)frac;
-        lcd_send_data(digit + '0');
-        frac -= digit;
+    // print leading zero kalau perlu
+    int divisor = scale / 10;
+    while (divisor > 0) {
+        int digit = frac_part / divisor;
+        lcd_send_data('0' + digit);
+        frac_part %= divisor;
+        divisor /= 10;
     }
 }
 

@@ -165,82 +165,40 @@ void lcd_task(void *pv)
             case APP_MONITOR:
             {
                 int total = CONFIG_NUM_LOADCELL;
-
-                // render statis label saja (tidak tiap loop)
-                static bool initialized = false;
-
-                if (!initialized)
-                {
-                    lcd_clear();
-
-                    if (total == 1)
-                    {
-                        lcd_set_cursor(0, 0);
-                        lcd_write_string("RAW:");
-                        lcd_set_cursor(1, 0);
-                        lcd_write_string("W:");
-                    }
-                    else if (total == 2)
-                    {
-                        lcd_set_cursor(0, 0);
-                        lcd_write_string("L0:");
-                        lcd_set_cursor(1, 0);
-                        lcd_write_string("L1:");
-                    }
-                    else if (total == 3)
-                    {
-                        lcd_set_cursor(0, 0);
-                        lcd_write_string("L0:");
-                        lcd_set_cursor(0, 8);
-                        lcd_write_string("L2:");
-                        lcd_set_cursor(1, 0);
-                        lcd_write_string("L1:");
-                    }
-                    else
-                    {
-                        lcd_set_cursor(0, 0);
-                        lcd_write_string("L0:");
-                        lcd_set_cursor(0, 8);
-                        lcd_write_string("L2:");
-                        lcd_set_cursor(1, 0);
-                        lcd_write_string("L1:");
-                        lcd_set_cursor(1, 8);
-                        lcd_write_string("L3:");
-                    }
-
-                    initialized = true;
-                }
-
-                // update nilai saja
+                // Row 0
                 if (total >= 1)
                 {
-                    lcd_set_cursor(0, 4);
-                    lcd_write_int((int)snapshot.lc[0].raw);
-                }
-
-                if (total >= 1)
-                {
-                    lcd_set_cursor(1, 2);
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("L0:");
                     lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
-                }
-
-                if (total >= 2)
-                {
-                    lcd_set_cursor(1, 4);
-                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
                 if (total >= 3)
                 {
-                    lcd_set_cursor(0, 12);
+                    lcd_set_cursor(0, 8);
+                    lcd_write_string("L2:");
                     lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
+                }
+
+                // Row 1
+                if (total >= 2)
+                {
+                    lcd_set_cursor(1, 0);
+                    lcd_write_string("L1:");
+                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
                 if (total >= 4)
                 {
-                    lcd_set_cursor(1, 12);
+                    lcd_set_cursor(1, 8);
+                    lcd_write_string("L3:");
                     lcd_write_float(snapshot.lc[3].weight / 1000.0f, 2);
                 }
+
+                lcd_set_cursor(0, 6); lcd_write_string("  ");
+                lcd_set_cursor(0, 14); lcd_write_string("  ");
+                lcd_set_cursor(1, 6); lcd_write_string("  ");
+                lcd_set_cursor(1, 14); lcd_write_string("  ");
             }
             break;
 
@@ -249,7 +207,6 @@ void lcd_task(void *pv)
                 lcd_write_string("MENU        ");
 
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Press Center");
                 break;
 
             case APP_CALIB_TARE:
