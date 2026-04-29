@@ -242,3 +242,33 @@ float calculate_weight(int32_t raw, int32_t tare, int32_t calib, int32_t known_w
 
     return (raw - tare) * scale;
 }
+
+int32_t get_total_weight_raw(app_state_t *app)
+{
+    int64_t raw_sum = 0;
+    int64_t tare_sum = 0;
+    int64_t calib_sum = 0;
+
+    for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+    {
+        raw_sum   += app->lc[i].raw;
+        tare_sum  += app->lc[i].tare;
+        calib_sum += app->lc[i].calib;
+    }
+
+    int32_t delta_calib = (int32_t)(calib_sum - tare_sum);
+
+    if (delta_calib == 0)
+        return 0;
+
+    int32_t known = editor_get_value(&app->editor);
+
+    if (known < 0) known = 0;
+    if (known > 999999) known = 999999;
+
+    float scale = (float)known / (float)delta_calib;
+
+    float weight = (raw_sum - tare_sum) * scale;
+
+    return (int32_t)weight;
+}

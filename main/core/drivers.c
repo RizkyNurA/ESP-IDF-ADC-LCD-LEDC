@@ -93,7 +93,8 @@ void lcd_task(void *pv)
     bool blink_state = false;
     uint8_t blink_counter = 0;
 
-    static uint8_t page = 0; // untuk paging >2 sensor
+    static int32_t last_total = -1;
+    static app_screen_t last_screen = APP_LOADING;
 
     while (1)
     {
@@ -110,137 +111,169 @@ void lcd_task(void *pv)
         snapshot = app;
         xSemaphoreGive(app_mutex);
 
+        // =========================
+        // LOADING SCREEN
+        // =========================
         if (!snapshot.system_ready)
         {
-            lcd_clear();
-            lcd_set_cursor(0, 0);
-            lcd_write_string("Loading...");
+            if (last_screen != APP_LOADING)
+            {
+                lcd_clear();
+                lcd_set_cursor(0, 0);
+                lcd_write_string("Loading...");
+                last_screen = APP_LOADING;
+            }
+
             vTaskDelay(pdMS_TO_TICKS(100));
             continue;
         }
 
+        // =========================
+        // CLEAR HANYA SAAT GANTI SCREEN
+        // =========================
         if (snapshot.screen != last_screen)
         {
             lcd_clear();
             last_screen = snapshot.screen;
+            last_total = -1; // force refresh
         }
 
+        // =========================
+        // RENDER
+        // =========================
         switch (snapshot.screen)
         {
             case APP_IDLE:
             {
+                int32_t total = get_total_weight_raw(&snapshot);
+
+                // update hanya jika berubah
+                if (total != last_total)
+                {
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("TOTAL:      ");
+
+                    lcd_set_cursor(1, 0);
+                    lcd_write_float(total / 1000.0f, 2);
+                    lcd_write_string("      "); // padding
+
+                    last_total = total;
+                }
+            }
+            break;
+
+            case APP_MONITOR:
+            {
                 int total = CONFIG_NUM_LOADCELL;
 
-                lcd_clear_row(0);
-                lcd_clear_row(1);
+                // render statis label saja (tidak tiap loop)
+                static bool initialized = false;
 
-                // =========================
-                // 1 SENSOR
-                // =========================
-                if (total == 1)
+                if (!initialized)
                 {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("RAW:");
+                    lcd_clear();
+
+                    if (total == 1)
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("RAW:");
+                        lcd_set_cursor(1, 0);
+                        lcd_write_string("W:");
+                    }
+                    else if (total == 2)
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("L0:");
+                        lcd_set_cursor(1, 0);
+                        lcd_write_string("L1:");
+                    }
+                    else if (total == 3)
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("L0:");
+                        lcd_set_cursor(0, 8);
+                        lcd_write_string("L2:");
+                        lcd_set_cursor(1, 0);
+                        lcd_write_string("L1:");
+                    }
+                    else
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("L0:");
+                        lcd_set_cursor(0, 8);
+                        lcd_write_string("L2:");
+                        lcd_set_cursor(1, 0);
+                        lcd_write_string("L1:");
+                        lcd_set_cursor(1, 8);
+                        lcd_write_string("L3:");
+                    }
+
+                    initialized = true;
+                }
+
+                // update nilai saja
+                if (total >= 1)
+                {
+                    lcd_set_cursor(0, 4);
                     lcd_write_int((int)snapshot.lc[0].raw);
-
-                    lcd_set_cursor(1, 0);
-                    lcd_write_string("W:");
-                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2); // KG
                 }
 
-                // =========================
-                // 2 SENSOR
-                // =========================
-                else if (total == 2)
+                if (total >= 1)
                 {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("L0:");
+                    lcd_set_cursor(1, 2);
                     lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
+                }
 
-                    lcd_set_cursor(1, 0);
-                    lcd_write_string("L1:");
+                if (total >= 2)
+                {
+                    lcd_set_cursor(1, 4);
                     lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
-                // =========================
-                // 3 SENSOR
-                // =========================
-                else if (total == 3)
+                if (total >= 3)
                 {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
-
-                    lcd_set_cursor(0, 8);
-                    lcd_write_string("L2:");
+                    lcd_set_cursor(0, 12);
                     lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
-
-                    lcd_set_cursor(1, 0);
-                    lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
                 }
 
-                // =========================
-                // 4 SENSOR
-                // =========================
-                else
+                if (total >= 4)
                 {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
-
-                    lcd_set_cursor(0, 8);
-                    lcd_write_string("L2:");
-                    lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
-
-                    lcd_set_cursor(1, 0);
-                    lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
-
-                    lcd_set_cursor(1, 8);
-                    lcd_write_string("L3:");
+                    lcd_set_cursor(1, 12);
                     lcd_write_float(snapshot.lc[3].weight / 1000.0f, 2);
                 }
             }
             break;
 
             case APP_MENU:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("MENU");
+                lcd_write_string("MENU        ");
 
-                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
                 lcd_write_string("Press Center");
                 break;
 
             case APP_CALIB_TARE:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("TARE");
+                lcd_write_string("TARE        ");
 
-                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Hold=OK");
+                lcd_write_string("Hold=OK     ");
                 break;
 
             case APP_CALIB_TARE_WAIT:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("TARE...");
+                lcd_write_string("TARE...     ");
 
-                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Wait");
+                lcd_write_string("Wait        ");
                 if (blink_state) lcd_write_string("...");
                 break;
 
             case APP_CALIB_INPUT:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("CAL:");
+                lcd_write_string("CAL:        ");
 
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < 6; i++)
                 {
                     uint8_t digit = editor_get_digit(&snapshot.editor, i);
                     uint8_t col = EDITOR_COL_START + i;
@@ -257,24 +290,20 @@ void lcd_task(void *pv)
                 break;
 
             case APP_CALIB_INPUT_WAIT:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("CAL...");
+                lcd_write_string("CAL...      ");
 
-                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Sampling");
+                lcd_write_string("Sampling    ");
                 if (blink_state) lcd_write_string("...");
                 break;
 
             case APP_CALIB_DONE:
-                lcd_clear_row(0);
                 lcd_set_cursor(0, 0);
-                lcd_write_string("DONE");
+                lcd_write_string("DONE        ");
 
-                lcd_clear_row(1);
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Hold=Exit");
+                lcd_write_string("Hold=Exit   ");
                 break;
 
             default:
