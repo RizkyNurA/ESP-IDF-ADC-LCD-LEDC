@@ -8,6 +8,8 @@ void GPIO_Initialation(gpio_num_t left_button,
                         gpio_num_t center_button,
                         gpio_num_t right_button);
 
+void alarm_init(void);
+                        
 void app_task(void *pv);
 
 // ADC

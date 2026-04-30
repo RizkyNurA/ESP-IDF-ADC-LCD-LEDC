@@ -10,10 +10,10 @@
 #define pin_sck_hx711_2 GPIO_NUM_19
 #define pin_dt_hx711_2  GPIO_NUM_35
 
-#define pin_sck_hx711_3 GPIO_NUM_23
+#define pin_sck_hx711_3 GPIO_NUM_25
 #define pin_dt_hx711_3  GPIO_NUM_36
 
-#define pin_sck_hx711_4 GPIO_NUM_5
+#define pin_sck_hx711_4 GPIO_NUM_26
 #define pin_dt_hx711_4  GPIO_NUM_39
 
 #define CONFIG_NUM_LOADCELL 4
@@ -31,6 +31,10 @@
 #define pin_ch1_relay GPIO_NUM_2
 #define pin_ch2_relay GPIO_NUM_4
 #define pin_ch3_relay GPIO_NUM_5
+
+#define ALARM1_THRESHOLD 1000   
+#define ALARM2_THRESHOLD 5000   
+#define ALARM3_THRESHOLD 10000  
 
 //#define interval_adc_potensio 100000
 #define interval_lcd 5000000

@@ -275,3 +275,26 @@ int32_t get_total_weight_raw(app_state_t *app)
 
     return (int32_t)weight;
 }
+
+void alarm_update(app_state_t *app)
+{
+    int32_t total = get_total_weight_raw(app);
+
+    // Relay 1
+    if (total >= ALARM1_THRESHOLD)
+        gpio_set_level(pin_ch1_relay, 1);
+    else
+        gpio_set_level(pin_ch1_relay, 0);
+
+    // Relay 2
+    if (total >= ALARM2_THRESHOLD)
+        gpio_set_level(pin_ch2_relay, 1);
+    else
+        gpio_set_level(pin_ch2_relay, 0);
+
+    // Relay 3
+    if (total >= ALARM3_THRESHOLD)
+        gpio_set_level(pin_ch3_relay, 1);
+    else
+        gpio_set_level(pin_ch3_relay, 0);
+}

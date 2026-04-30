@@ -38,6 +38,23 @@ void GPIO_Initialation(gpio_num_t left_button,
     
 }
 
+void alarm_init(void)
+{
+    gpio_reset_pin(pin_ch1_relay);
+    gpio_set_direction(pin_ch1_relay, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(pin_ch2_relay);
+    gpio_set_direction(pin_ch2_relay, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(pin_ch3_relay);
+    gpio_set_direction(pin_ch3_relay, GPIO_MODE_OUTPUT);
+
+    // default OFF
+    gpio_set_level(pin_ch1_relay, 0);
+    gpio_set_level(pin_ch2_relay, 0);
+    gpio_set_level(pin_ch3_relay, 0);
+}
+
 void app_task(void *pv)
 {
     app_event_t evt;
