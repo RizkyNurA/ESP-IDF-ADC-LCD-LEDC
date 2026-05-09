@@ -226,6 +226,75 @@ void lcd_task(void *pv)
 
                 lcd_set_cursor(1, 0);
                 break;
+                
+            case APP_CONFIG_ALARM_1:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("ALARM1:     ");
+
+                for (int i = 0; i < 6; i++)
+                {
+                    uint8_t digit =
+                        editor_get_digit(&snapshot.editor, i);
+
+                    uint8_t col = EDITOR_COL_START + i;
+
+                    lcd_set_cursor(1, col);
+
+                    bool blink =
+                        editor_should_blink(&snapshot.editor, i);
+
+                    if (blink && blink_state)
+                        lcd_write_char(' ');
+                    else
+                        lcd_write_char('0' + digit);
+                }
+                break;
+
+            case APP_CONFIG_ALARM_2:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("ALARM2:     ");
+
+                for (int i = 0; i < 6; i++)
+                {
+                    uint8_t digit =
+                        editor_get_digit(&snapshot.editor, i);
+
+                    uint8_t col = EDITOR_COL_START + i;
+
+                    lcd_set_cursor(1, col);
+
+                    bool blink =
+                        editor_should_blink(&snapshot.editor, i);
+
+                    if (blink && blink_state)
+                        lcd_write_char(' ');
+                    else
+                        lcd_write_char('0' + digit);
+                }
+                break;
+
+            case APP_CONFIG_ALARM_3:
+                lcd_set_cursor(0, 0);
+                lcd_write_string("ALARM3:     ");
+
+                for (int i = 0; i < 6; i++)
+                {
+                    uint8_t digit =
+                        editor_get_digit(&snapshot.editor, i);
+
+                    uint8_t col = EDITOR_COL_START + i;
+
+                    lcd_set_cursor(1, col);
+
+                    bool blink =
+                        editor_should_blink(&snapshot.editor, i);
+
+                    if (blink && blink_state)
+                        lcd_write_char(' ');
+                    else
+                        lcd_write_char('0' + digit);
+                }
+                break;
 
             case APP_CALIB_TARE:
                 lcd_set_cursor(0, 0);

@@ -55,6 +55,15 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    app.alarm_threshold[0] =
+    nvs_load_i32("alarm1", 1000);
+
+    app.alarm_threshold[1] =
+        nvs_load_i32("alarm2", 2000);
+
+    app.alarm_threshold[2] =
+        nvs_load_i32("alarm3", 3000);
+
     /* ===================== RTOS INIT ===================== */
     app_mutex = xSemaphoreCreateMutex();
     app_queue = xQueueCreate(10, sizeof(app_event_t));

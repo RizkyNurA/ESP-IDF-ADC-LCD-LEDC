@@ -25,6 +25,7 @@ void editor_toggle_mode(editor_t *e);
 
 // FIX: return 32-bit
 uint32_t editor_get_value(editor_t *e);
+void editor_set_value(editor_t *e, uint32_t value);
 
 void editor_dec_digit(editor_t *e);
 void editor_inc_digit(editor_t *e);

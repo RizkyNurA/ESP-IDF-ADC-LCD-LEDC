@@ -74,6 +74,16 @@ uint32_t editor_get_value(editor_t *e)
     return e->value;
 }
 
+void editor_set_value(editor_t *e, uint32_t value)
+{
+    if (value > VALUE_MAX)
+        value = VALUE_MAX;
+
+    e->value = value;
+    e->cursor_index = 0;
+    e->state = UI_NAV;
+}
+
 void editor_dec_digit(editor_t *e)
 {
     if (e->cursor_index > DIGIT_MAX)

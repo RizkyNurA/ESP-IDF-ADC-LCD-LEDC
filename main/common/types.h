@@ -9,8 +9,11 @@
 typedef enum {
     APP_LOADING,
     APP_IDLE,
-    APP_MONITOR,
     APP_MENU,
+    APP_MONITOR,
+    APP_CONFIG_ALARM_1,
+    APP_CONFIG_ALARM_2,
+    APP_CONFIG_ALARM_3,
     APP_CALIB_TARE,
     APP_CALIB_TARE_WAIT,
     APP_CALIB_INPUT,
@@ -34,6 +37,7 @@ typedef struct {
     loadcell_t lc[CONFIG_NUM_LOADCELL];
     uint8_t lc_index;
     int current_lc;
+    int32_t alarm_threshold[3];
 
 } app_state_t;
 typedef struct {

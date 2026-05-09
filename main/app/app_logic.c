@@ -112,13 +112,82 @@ void app_handle_event(app_state_t *app, app_event_t evt)
 
         case APP_MENU:
             if (evt == EVT_CENTER_SHORT)
+            {
                 app->screen = APP_CALIB_TARE;
-
+            }
             else if (evt == EVT_LEFT_SHORT)
+            {
                 app->screen = APP_MONITOR;
-
+            }
             else if (evt == EVT_CENTER_LONG)
+            {
                 app->screen = APP_IDLE;
+            }
+            else if (evt == EVT_RIGHT_SHORT)
+            {
+                editor_set_value(&app->editor, app->alarm_threshold[0]);
+                app->screen = APP_CONFIG_ALARM_1;
+            }
+            break;
+        
+        case APP_CONFIG_ALARM_1 :
+            editor_handle_event(&app->editor, evt); //aduh gimana dah ini
+            if (evt == EVT_CENTER_LONG)
+            {
+                app->alarm_threshold[0] =
+                    editor_get_value(&app->editor);
+
+                nvs_save_i32(
+                    "alarm1",
+                    app->alarm_threshold[0]
+                );
+
+                editor_set_value(
+                    &app->editor,
+                    app->alarm_threshold[1]
+                );
+
+                app->screen = APP_CONFIG_ALARM_2;
+            }
+            break;
+        case APP_CONFIG_ALARM_2:
+            editor_handle_event(&app->editor, evt);
+
+            if (evt == EVT_CENTER_LONG)
+            {
+                app->alarm_threshold[1] =
+                    editor_get_value(&app->editor);
+
+                nvs_save_i32(
+                    "alarm2",
+                    app->alarm_threshold[1]
+                );
+
+                editor_set_value(
+                    &app->editor,
+                    app->alarm_threshold[2]
+                );
+                app->screen = APP_CONFIG_ALARM_3;
+            }
+            break;
+
+        case APP_CONFIG_ALARM_3:
+
+            editor_handle_event(&app->editor, evt);
+
+            if (evt == EVT_CENTER_LONG)
+            {
+                app->alarm_threshold[2] =
+                    editor_get_value(&app->editor);
+
+                nvs_save_i32(
+                    "alarm3",
+                    app->alarm_threshold[2]
+                );
+
+                app->screen = APP_IDLE;
+            }
+
             break;
 
         case APP_CALIB_TARE:
@@ -291,23 +360,19 @@ int32_t get_total_weight(app_state_t *app)
 void alarm_update(app_state_t *app)
 {
     int32_t total = get_total_weight(app);
-    ESP_LOGI("ALARM", "total = %ld", total);
 
-    // Relay 1
-    if (total >= ALARM1_THRESHOLD)
-        gpio_set_level(pin_ch1_relay, 1);
-    else
-        gpio_set_level(pin_ch1_relay, 0);
+    gpio_set_level(
+        pin_ch1_relay,
+        total >= app->alarm_threshold[0]
+    );
 
-    // Relay 2
-    if (total >= ALARM2_THRESHOLD)
-        gpio_set_level(pin_ch2_relay, 1);
-    else
-        gpio_set_level(pin_ch2_relay, 0);
+    gpio_set_level(
+        pin_ch2_relay,
+        total >= app->alarm_threshold[1]
+    );
 
-    // Relay 3
-    if (total >= ALARM3_THRESHOLD)
-        gpio_set_level(pin_ch3_relay, 1);
-    else
-        gpio_set_level(pin_ch3_relay, 0);
+    gpio_set_level(
+        pin_ch3_relay,
+        total >= app->alarm_threshold[2]
+    );
 }
