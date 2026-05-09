@@ -291,29 +291,54 @@ void lcd_task(void *pv)
 void hx711_task(void *pv)
 {
     hx711_ctx_t *ctx = (hx711_ctx_t *)pv;
+
     bool ready;
+    int32_t val;
+    esp_err_t err;
 
     while (1)
     {
-        hx711_is_ready(ctx->scale, &ready);
+        int dout_level = gpio_get_level(ctx->scale->dout);
 
-        if (ready)
+        err = hx711_is_ready(ctx->scale, &ready);
+
+        if (err != ESP_OK)
         {
-            int32_t val;
-            hx711_read_data(ctx->scale, &val);
+            // ESP_LOGE("HX", "IDX %d is_ready ERR %d", ctx->index, err);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            continue;
+        }
+
+        if (!ready)
+        {
+            // ESP_LOGW("HX", "IDX %d NOT READY (DOUT=%d)", ctx->index, dout_level);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            continue;
+        }
+
+        err = hx711_read_data(ctx->scale, &val);
+
+        if (err != ESP_OK)
+        {
+            // ESP_LOGE("HX", "IDX %d READ FAIL err=%d (DOUT=%d)", ctx->index, err, dout_level);
+        }
+        else
+        {
+            ESP_LOGI("HX", "IDX %d OK RAW=%ld (DOUT=%d)", ctx->index, val, dout_level);
 
             xSemaphoreTake(app_mutex, portMAX_DELAY);
             app.lc[ctx->index].raw = val;
             xSemaphoreGive(app_mutex);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
 void button_task(void *pv)
 {
     button_group_t *grp = (button_group_t *)pv;
+    
 
     while (1)
     {
