@@ -124,6 +124,7 @@ void lcd_task(void *pv)
         app_state_t snapshot;
 
         xSemaphoreTake(app_mutex, portMAX_DELAY);
+        alarm_update(&app);
         app_update(&app);
         snapshot = app;
         xSemaphoreGive(app_mutex);
@@ -162,7 +163,7 @@ void lcd_task(void *pv)
         {
             case APP_IDLE:
             {
-                int32_t total = get_total_weight_raw(&snapshot);
+                int32_t total = get_total_weight(&snapshot);
 
                 // update hanya jika berubah
                 if (total != last_total)

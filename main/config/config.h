@@ -3,31 +3,28 @@
 
 #include "driver/gpio.h"
 
-/* ===================== HX711 (SISI KIRI - URUTAN TUA KE MUDA) ===================== */
-/* Pin DT (Input Only) menggunakan GPIO 39, 36, 35, 34 */
-#define pin_dt_hx711_4      GPIO_NUM_26  // HX711 1 (Paling Tua)
+#define pin_dt_hx711_4      GPIO_NUM_26  
 #define pin_dt_hx711_3      GPIO_NUM_25
 #define pin_dt_hx711_2      GPIO_NUM_14
-#define pin_dt_hx711        GPIO_NUM_13  // HX711 4 (Paling Muda)
+#define pin_dt_hx711        GPIO_NUM_13  
 
-/* Pin SCK (Output) menggunakan GPIO 33, 32, 26, 25 */
-#define pin_sck_hx711_4     GPIO_NUM_33  // HX711 1 (Paling Tua)
+#define pin_sck_hx711_4     GPIO_NUM_33 
 #define pin_sck_hx711_3     GPIO_NUM_32
 #define pin_sck_hx711_2     GPIO_NUM_27
-#define pin_sck_hx711       GPIO_NUM_12  // HX711 4 (Paling Muda)
+#define pin_sck_hx711       GPIO_NUM_12 
 
 #define CONFIG_NUM_LOADCELL 1
 
-/* ===================== LCD (SISI KANAN) ==============rr======= */
+/* ===================== LCD  ==============rr======= */
 #define pin_sda_lcd       GPIO_NUM_21
 #define pin_scl_lcd       GPIO_NUM_22
 
-/* ===================== BUTTON (SISI KANAN) ===================== */
+/* ===================== BUTTON ===================== */
 #define pin_button_left   GPIO_NUM_36
 #define pin_button_center GPIO_NUM_39
 #define pin_button_right  GPIO_NUM_34
 
-/* ===================== RELAY (SISI KANAN) ===================== */
+/* ===================== RELAY ===================== */
 #define pin_ch1_relay     GPIO_NUM_5
 #define pin_ch2_relay     GPIO_NUM_18
 #define pin_ch3_relay     GPIO_NUM_19

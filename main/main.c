@@ -73,6 +73,8 @@ void app_main(void)
         pin_button_right
     );
 
+    alarm_init();
+
     /* ===================== HX711 INIT ===================== */
     gpio_num_t dt_pins[] = {
     #if CONFIG_NUM_LOADCELL >= 1

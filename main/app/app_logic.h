@@ -20,4 +20,8 @@ float calculate_weight(int32_t raw, int32_t tare, int32_t calib, int32_t known_w
 
 int32_t get_total_weight_raw(app_state_t *app);
 
+int32_t get_total_weight(app_state_t *app);
+
+void alarm_update(app_state_t *app);
+
 #endif // APP_LOGIC_H

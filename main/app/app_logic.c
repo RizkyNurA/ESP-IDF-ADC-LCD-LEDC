@@ -276,9 +276,22 @@ int32_t get_total_weight_raw(app_state_t *app)
     return (int32_t)weight;
 }
 
+int32_t get_total_weight(app_state_t *app)
+{
+    float total = 0.0f;
+
+    for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+    {
+        total += app->lc[i].weight;
+    }
+
+    return (int32_t)total;
+}
+
 void alarm_update(app_state_t *app)
 {
-    int32_t total = get_total_weight_raw(app);
+    int32_t total = get_total_weight(app);
+    ESP_LOGI("ALARM", "total = %ld", total);
 
     // Relay 1
     if (total >= ALARM1_THRESHOLD)
