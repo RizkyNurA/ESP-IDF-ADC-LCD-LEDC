@@ -63,4 +63,19 @@ typedef struct {
     hx711_t scale;
 } system_ctx_t;
 
+typedef enum
+{
+    ALARM_MODE_HIGH,
+    ALARM_MODE_LOW
+} alarm_mode_t;
+
+typedef struct
+{
+    uint8_t selected;
+    uint8_t count;
+
+    const char **items;
+
+} selector_t;
+
 #endif // TYPES_H

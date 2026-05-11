@@ -4,6 +4,7 @@ idf_component_register(
 
         "app/app_logic.c"
         "app/editor.c"
+        "app/selector.c"
 
         "system/app_context.c"
 
