@@ -13,75 +13,215 @@
 #define WAIT_TICKS  50
 
 static int32_t get_average_single_sensor(int index, size_t samples);
-static void save_alarm_config(app_state_t *app, int idx)
-{
-    char key[16];
 
-    make_nvs_key(key, sizeof(key), "alarm", idx);
-    nvs_save_i32(key, app->alarm_threshold[idx]);
-
-    make_nvs_key(key, sizeof(key), "alarm_mode", idx);
-    nvs_save_i32(
-        key,
-        app->alarm_mode[idx].selected
-    );
-}
-
-static void load_next_alarm_editor(
+static void save_alarm_config(
     app_state_t *app,
     int idx
 )
 {
+    char key[32];
+
+    make_nvs_key(key, sizeof(key), "alm_en", idx);
+    nvs_save_i32(key, app->alarm[idx].enabled);
+
+    make_nvs_key(key, sizeof(key), "alm_mode", idx);
+    nvs_save_i32(key, app->alarm[idx].mode);
+
+    make_nvs_key(key, sizeof(key), "alm_low", idx);
+    nvs_save_i32(key, app->alarm[idx].threshold_low);
+
+    make_nvs_key(key, sizeof(key), "alm_high", idx);
+    nvs_save_i32(key, app->alarm[idx].threshold_high);
+}
+
+static void load_alarm_editor(
+    app_state_t *app,
+    int idx
+)
+{
+    app->current_alarm = idx;
+
     editor_set_value(
         &app->editor,
-        app->alarm_threshold[idx]
+        app->alarm[idx].threshold_low
     );
 
     app->editor.state = UI_NAV;
 }
 
-static bool handle_alarm_config(
-    app_state_t *app,
-    app_event_t evt,
-    int idx,
-    app_screen_t next_screen
+static bool alarm_condition(
+    alarm_t *a,
+    int32_t value
 )
 {
+    if (!a->enabled)
+        return false;
+
+    switch (a->mode)
+    {
+        case ALARM_ATAS:
+            return value >= a->threshold_low;
+
+        case ALARM_BAWAH:
+            return value <= a->threshold_low;
+
+        case ALARM_DALAM:
+            return
+                value >= a->threshold_low &&
+                value <= a->threshold_high;
+
+        case ALARM_LUAR:
+            return
+                value < a->threshold_low ||
+                value > a->threshold_high;
+
+        default:
+            return false;
+    }
+}
+
+static void handle_alarm_config(
+    app_state_t *app,
+    app_event_t evt
+)
+{
+    alarm_t *a =
+        &app->alarm[
+            app->current_alarm
+        ];
+
     // =========================
-    // SELECTOR
+    // MODE SELECT
     // =========================
 
-    if (!app->alarm_editing)
+    if (
+        app->ui_state ==
+        ALARM_UI_SELECT
+    )
     {
         selector_handle_event(
-            &app->alarm_mode[idx],
+            &a->selector,
             evt
         );
 
-        // masuk edit digit
+        a->mode =
+            (alarm_mode_t)
+            a->selector.selected;
+
+        // =========================
+        // ENTER EDIT LOW
+        // =========================
+
         if (evt == EVT_RIGHT_LONG)
         {
-            app->alarm_editing = true;
-            app->editor.state = UI_NAV;
+            app->ui_state =
+                ALARM_UI_EDIT_VALUE1;
+
+            editor_set_value(
+                &app->editor,
+                a->threshold_low
+            );
+
+            app->editor.state =
+                UI_NAV;
         }
     }
 
     // =========================
-    // EDITOR
+    // EDIT LOW
     // =========================
 
-    else
+    else if (
+        app->ui_state ==
+        ALARM_UI_EDIT_VALUE1
+    )
     {
         editor_handle_event(
             &app->editor,
             evt
         );
 
-        // keluar edit
+        // realtime update
+        a->threshold_low =
+            editor_get_value(
+                &app->editor
+            );
+
+        // =========================
+        // BACK TO SELECT
+        // =========================
+
         if (evt == EVT_LEFT_LONG)
         {
-            app->alarm_editing = false;
-            app->editor.state = UI_NAV;
+            app->ui_state =
+                ALARM_UI_SELECT;
+
+            app->editor.state =
+                UI_NAV;
+        }
+
+        // =========================
+        // ENTER EDIT HIGH
+        // ONLY DALAM / LUAR
+        // =========================
+
+        else if (
+            evt == EVT_RIGHT_LONG &&
+            (
+                a->mode == ALARM_DALAM ||
+                a->mode == ALARM_LUAR
+            )
+        )
+        {
+            app->ui_state =
+                ALARM_UI_EDIT_VALUE2;
+
+            editor_set_value(
+                &app->editor,
+                a->threshold_high
+            );
+
+            app->editor.state =
+                UI_NAV;
+        }
+    }
+
+    // =========================
+    // EDIT HIGH
+    // =========================
+
+    else if (
+        app->ui_state ==
+        ALARM_UI_EDIT_VALUE2
+    )
+    {
+        editor_handle_event(
+            &app->editor,
+            evt
+        );
+
+        // realtime update
+        a->threshold_high =
+            editor_get_value(
+                &app->editor
+            );
+
+        // =========================
+        // BACK TO LOW
+        // =========================
+
+        if (evt == EVT_LEFT_LONG)
+        {
+            app->ui_state =
+                ALARM_UI_EDIT_VALUE1;
+
+            editor_set_value(
+                &app->editor,
+                a->threshold_low
+            );
+
+            app->editor.state =
+                UI_NAV;
         }
     }
 
@@ -91,29 +231,68 @@ static bool handle_alarm_config(
 
     if (evt == EVT_CENTER_LONG)
     {
-        app->alarm_threshold[idx] =
-            editor_get_value(
-                &app->editor
-            );
-
-        save_alarm_config(app, idx);
-
-        app->alarm_editing = false;
-
-        if (next_screen != APP_IDLE)
+        // safety normalize
+        if (
+            a->threshold_low >
+            a->threshold_high
+        )
         {
-            load_next_alarm_editor(
-                app,
-                idx + 1
-            );
+            int32_t tmp =
+                a->threshold_low;
+
+            a->threshold_low =
+                a->threshold_high;
+
+            a->threshold_high =
+                tmp;
         }
 
-        app->screen = next_screen;
+        save_alarm_config(
+            app,
+            app->current_alarm
+        );
 
-        return true;
+        // =========================
+        // NEXT ALARM
+        // =========================
+
+        if (
+            app->current_alarm <
+            (ALARM_COUNT - 1)
+        )
+        {
+            app->current_alarm++;
+
+            app->ui_state =
+                ALARM_UI_SELECT;
+
+            alarm_t *next =
+                &app->alarm[
+                    app->current_alarm
+                ];
+
+            editor_set_value(
+                &app->editor,
+                next->threshold_low
+            );
+
+            app->editor.state =
+                UI_NAV;
+        }
+
+        // =========================
+        // FINISH
+        // =========================
+
+        else
+        {
+            app->ui_state =
+                ALARM_UI_SELECT;
+
+            app->screen =
+                APP_IDLE;
+        }
     }
-
-    return false;
 }
 
 void app_update(app_state_t *app)
@@ -261,9 +440,11 @@ void app_handle_event(
             else if (evt == EVT_RIGHT_SHORT)
             {
 
-                load_next_alarm_editor(app, 0);
-                app->alarm_editing = false;
-                app->screen = APP_CONFIG_ALARM_1;
+                app->current_alarm = 0;
+
+                load_alarm_editor(app, 0);
+
+                app->screen = APP_CONFIG_ALARM;
 
                 
 
@@ -275,35 +456,11 @@ void app_handle_event(
 
             break;
 
-        case APP_CONFIG_ALARM_1:
+        case APP_CONFIG_ALARM:
 
             handle_alarm_config(
                 app,
-                evt,
-                0,
-                APP_CONFIG_ALARM_2
-            );
-
-            break;
-
-        case APP_CONFIG_ALARM_2:
-
-            handle_alarm_config(
-                app,
-                evt,
-                1,
-                APP_CONFIG_ALARM_3
-            );
-
-            break;
-
-        case APP_CONFIG_ALARM_3:
-
-            handle_alarm_config(
-                app,
-                evt,
-                2,
-                APP_IDLE
+                evt
             );
 
             break;
@@ -484,29 +641,33 @@ int32_t get_total_weight(app_state_t *app)
 
 void alarm_update(app_state_t *app)
 {
-    int32_t total = get_total_weight(app);
+    int32_t total =
+        get_total_weight(app);
 
     gpio_set_level(
         pin_ch1_relay,
 
-        app->alarm_mode[0].selected == ALARM_MODE_HIGH
-        ? total >= app->alarm_threshold[0]
-        : total <= app->alarm_threshold[0]
+        alarm_condition(
+            &app->alarm[0],
+            total
+        )
     );
 
     gpio_set_level(
         pin_ch2_relay,
 
-        app->alarm_mode[1].selected == ALARM_MODE_HIGH
-        ? total >= app->alarm_threshold[1]
-        : total <= app->alarm_threshold[1]
+        alarm_condition(
+            &app->alarm[1],
+            total
+        )
     );
 
     gpio_set_level(
         pin_ch3_relay,
 
-        app->alarm_mode[2].selected == ALARM_MODE_HIGH
-        ? total >= app->alarm_threshold[2]
-        : total <= app->alarm_threshold[2]
+        alarm_condition(
+            &app->alarm[2],
+            total
+        )
     );
 }

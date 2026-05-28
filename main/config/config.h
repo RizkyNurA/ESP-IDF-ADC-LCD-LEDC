@@ -3,17 +3,19 @@
 
 #include "driver/gpio.h"
 
-#define pin_dt_hx711_4      GPIO_NUM_26  
-#define pin_dt_hx711_3      GPIO_NUM_25
-#define pin_dt_hx711_2      GPIO_NUM_14
 #define pin_dt_hx711        GPIO_NUM_13  
+#define pin_dt_hx711_2      GPIO_NUM_14
+#define pin_dt_hx711_3      GPIO_NUM_26  
+#define pin_dt_hx711_4      GPIO_NUM_25
 
-#define pin_sck_hx711_4     GPIO_NUM_33 
-#define pin_sck_hx711_3     GPIO_NUM_32
-#define pin_sck_hx711_2     GPIO_NUM_27
 #define pin_sck_hx711       GPIO_NUM_12 
+#define pin_sck_hx711_2     GPIO_NUM_27
+#define pin_sck_hx711_3     GPIO_NUM_33 
+#define pin_sck_hx711_4     GPIO_NUM_32
+/* slot lc 1 berada di kanan bawah dari belakang dan urutan pin dari kiri adalah A+, A-, E-, E+ 
+slot lc 2 di kanan atas, lc 3 kiri bawah, lc 4 kiri atas */
 
-#define CONFIG_NUM_LOADCELL 4
+#define CONFIG_NUM_LOADCELL 1
 
 /* ===================== LCD  ==============rr======= */
 #define pin_sda_lcd       GPIO_NUM_21
@@ -30,6 +32,7 @@
 #define pin_ch3_relay     GPIO_NUM_19
 
 /* ===================== THRESHOLD & OTHERS ===================== */
+#define ALARM_COUNT 3
 #define ALARM1_THRESHOLD  1000   
 #define ALARM2_THRESHOLD  5000   
 #define ALARM3_THRESHOLD  10000  

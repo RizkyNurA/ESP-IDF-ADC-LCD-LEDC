@@ -102,50 +102,6 @@ void app_task(void *pv)
 //         vTaskDelay(pdMS_TO_TICKS(10));
 //     }
 // }
-static void render_alarm_screen(
-    app_state_t *snapshot,
-    int idx,
-    const char *title,
-    bool blink_state
-)
-{
-    lcd_set_cursor(0, 0);
-    lcd_write_string(title);
-
-    lcd_set_cursor(0, 9);
-
-    lcd_write_string(
-        snapshot->alarm_mode[idx].items[
-            snapshot->alarm_mode[idx].selected
-        ]
-    );
-
-    for (int i = 0; i < 6; i++)
-    {
-        uint8_t digit =
-            editor_get_digit(
-                &snapshot->editor,
-                i
-            );
-
-        uint8_t col =
-            EDITOR_COL_START + i;
-
-        lcd_set_cursor(1, col);
-
-        bool blink =
-            snapshot->alarm_editing &&
-            editor_should_blink(
-                &snapshot->editor,
-                i
-            );
-
-        if (blink && blink_state)
-            lcd_write_char(' ');
-        else
-            lcd_write_char('0' + digit);
-    }
-}
 
 void lcd_task(void *pv)
 {
@@ -268,39 +224,81 @@ void lcd_task(void *pv)
 
                 lcd_set_cursor(1, 0);
                 break;
-                
-            case APP_CONFIG_ALARM_1:
 
-                render_alarm_screen(
-                    &snapshot,
-                    0,
-                    "ALARM1:",
-                    blink_state
-                );
+            case APP_CONFIG_ALARM:
+            {
+                alarm_t *a =
+                    &snapshot.alarm[
+                        snapshot.current_alarm
+                    ];
 
-                break;
+                lcd_set_cursor(0, 0);
 
-            case APP_CONFIG_ALARM_2:
+                lcd_write_string("A");
+                lcd_write_char('1' + snapshot.current_alarm);
+                lcd_write_string(":");
 
-                render_alarm_screen(
-                    &snapshot,
-                    1,
-                    "ALARM2:",
-                    blink_state
-                );
+                switch (a->mode)
+                {
+                    case ALARM_ATAS:
+                        lcd_write_string("ATAS ");
+                        break;
 
-                break;
+                    case ALARM_BAWAH:
+                        lcd_write_string("BAWAH");
+                        break;
 
-            case APP_CONFIG_ALARM_3:
+                    case ALARM_DALAM:
+                        lcd_write_string("DALAM");
+                        break;
 
-                render_alarm_screen(
-                    &snapshot,
-                    2,
-                    "ALARM3:",
-                    blink_state
-                );
+                    case ALARM_LUAR:
+                        lcd_write_string("LUAR ");
+                        break;
 
-                break;
+                    default:
+                        lcd_write_string("-----");
+                        break;
+                }
+
+                // =========================
+                // VALUE DISPLAY
+                // =========================
+
+                for (int i = 0; i < 6; i++)
+                {
+                    uint8_t digit =
+                        editor_get_digit(
+                            &snapshot.editor,
+                            i
+                        );
+
+                    uint8_t col =
+                        EDITOR_COL_START + i;
+
+                    lcd_set_cursor(1, col);
+
+                    bool blink  =
+                    (
+                        snapshot.ui_state ==
+                        ALARM_UI_EDIT_VALUE1 ||
+
+                        snapshot.ui_state ==
+                        ALARM_UI_EDIT_VALUE2
+                    )
+                    &&
+                    editor_should_blink(
+                        &snapshot.editor,
+                        i
+                    );
+
+                    if (blink && blink_state)
+                        lcd_write_char(' ');
+                    else
+                        lcd_write_char('0' + digit);
+                }
+            }
+            break;
 
             case APP_CALIB_TARE:
                 lcd_set_cursor(0, 0);

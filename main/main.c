@@ -45,8 +45,10 @@ static hx711_ctx_t ctx[CONFIG_NUM_LOADCELL];
 
 static const char *alarm_mode_items[] =
 {
-    "HIGH",
-    "LOW "
+    "ATAS",
+    "BAWAH",
+    "DALAM",
+    "LUAR"
 };
 
 /* ===================== MAIN ===================== */
@@ -62,26 +64,62 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    app.alarm_threshold[0] =
-    nvs_load_i32("alarm1", 1000);
+    for (int i = 0; i < ALARM_COUNT; i++)
+{
+    app.alarm[i].enabled = true;
 
-    app.alarm_threshold[1] =
-        nvs_load_i32("alarm2", 2000);
+    app.alarm[i].selector.items =
+        alarm_mode_items;
 
-    app.alarm_threshold[2] =
-        nvs_load_i32("alarm3", 3000);
+    app.alarm[i].selector.count = 4;
 
     char key[16];
 
-for (int i = 0; i < 3; i++)
-{
-    app.alarm_mode[i].items = alarm_mode_items;
-    app.alarm_mode[i].count = 2;
+    // =========================
+    // LOAD MODE
+    // =========================
 
-    make_nvs_key(key, sizeof(key), "alarm_mode", i);
+    make_nvs_key(
+        key,
+        sizeof(key),
+        "alm_mode",
+        i
+    );
 
-    app.alarm_mode[i].selected =
+    app.alarm[i].selector.selected =
         nvs_load_i32(key, 0);
+
+    app.alarm[i].mode =
+        (alarm_mode_t)
+        app.alarm[i].selector.selected;
+
+    // =========================
+    // LOAD LOW
+    // =========================
+
+    make_nvs_key(
+        key,
+        sizeof(key),
+        "alm_low",
+        i
+    );
+
+    app.alarm[i].threshold_low =
+        nvs_load_i32(key, 1000);
+
+    // =========================
+    // LOAD HIGH
+    // =========================
+
+    make_nvs_key(
+        key,
+        sizeof(key),
+        "alm_high",
+        i
+    );
+
+    app.alarm[i].threshold_high =
+        nvs_load_i32(key, 5000);
 }
 
     /* ===================== RTOS INIT ===================== */
@@ -157,6 +195,7 @@ for (int i = 0; i < 3; i++)
     app.system_ready = true;
     app.lc_index = 0;
 
+    char key [36];
 
     for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
     {

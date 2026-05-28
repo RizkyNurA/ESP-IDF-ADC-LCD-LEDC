@@ -11,15 +11,33 @@ typedef enum {
     APP_IDLE,
     APP_MENU,
     APP_MONITOR,
-    APP_CONFIG_ALARM_1,
-    APP_CONFIG_ALARM_2,
-    APP_CONFIG_ALARM_3,
+    APP_CONFIG_ALARM,
     APP_CALIB_TARE,
     APP_CALIB_TARE_WAIT,
     APP_CALIB_INPUT,
     APP_CALIB_INPUT_WAIT,
     APP_CALIB_DONE
 } app_screen_t;
+
+typedef enum
+{
+    ALARM_ATAS,
+    ALARM_BAWAH,
+    ALARM_DALAM,
+    ALARM_LUAR
+
+} alarm_mode_t;
+
+typedef enum
+{
+    ALARM_UI_SELECT,
+    ALARM_UI_EDIT_VALUE1,
+    ALARM_UI_EDIT_VALUE2,
+    ALARM_UI_EDIT_MODE,
+    ALARM_UI_EDIT_ENABLE
+
+} alarm_ui_state_t;
+
 
 typedef struct {
     int32_t raw;
@@ -37,6 +55,19 @@ typedef struct
 
 } selector_t;
 
+typedef struct
+{
+    bool enabled;
+
+    alarm_mode_t mode;
+
+    int32_t threshold_low;
+    int32_t threshold_high;
+    bool relay_state;
+
+    selector_t selector;
+
+} alarm_t;
 typedef struct {
     uint32_t duty;
     editor_t editor;
@@ -46,9 +77,10 @@ typedef struct {
     loadcell_t lc[CONFIG_NUM_LOADCELL];
     uint8_t lc_index;
     int current_lc;
-    int32_t alarm_threshold[3];
-    selector_t alarm_mode[3];
-    bool alarm_editing;
+    alarm_t alarm[ALARM_COUNT];
+    alarm_ui_state_t ui_state;
+    uint8_t current_alarm;
+    selector_t menu_selector;
 
 } app_state_t;
 typedef struct {
@@ -73,11 +105,5 @@ typedef enum {
 typedef struct {
     hx711_t scale;
 } system_ctx_t;
-
-typedef enum
-{
-    ALARM_MODE_HIGH,
-    ALARM_MODE_LOW
-} alarm_mode_t;
 
 #endif // TYPES_H
