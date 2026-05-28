@@ -7,12 +7,175 @@
 #include "utils.h"
 #include "selector.h"
 #include "types.h"
+#include "freertos/FreeRTOS.h"
 
 #define KNOWN_MAX 999999
 #define ALARM_COUNT 3
 #define WAIT_TICKS  50
 
 static int32_t get_average_single_sensor(int index, size_t samples);
+
+static bool alarm_trigger_update(
+    alarm_t *a,
+    bool condition
+)
+{
+    TickType_t now =
+        xTaskGetTickCount();
+
+    switch (a->trigger_mode)
+    {
+        // =========================
+        // LEVEL
+        // =========================
+
+        case TRIGGER_LEVEL:
+        {
+            return condition;
+        }
+
+        // =========================
+        // STABLE HIGH
+        // =========================
+
+        case TRIGGER_STABLE_HIGH:
+        {
+            // mulai timer
+            if (condition)
+            {
+                if (!a->trigger_timer_running)
+                {
+                    a->trigger_timer_running = true;
+
+                    a->trigger_timer_start = now;
+                }
+
+                uint32_t elapsed =
+                    pdTICKS_TO_MS(
+                        now -
+                        a->trigger_timer_start
+                    );
+
+                if (
+                    elapsed >=
+                    a->trigger_delay_ms
+                )
+                {
+                    return true;
+                }
+            }
+
+            // reset timer
+            else
+            {
+                a->trigger_timer_running = false;
+            }
+
+            return false;
+        }
+
+        default:
+            return false;
+        }
+}
+
+static bool alarm_output_update(
+    alarm_t *a,
+    bool trigger_valid
+)
+{
+    TickType_t now =
+        xTaskGetTickCount();
+
+    switch (a->output_mode)
+    {
+        // =========================
+        // DIRECT
+        // =========================
+
+        case OUTPUT_DIRECT:
+        {
+            return trigger_valid;
+        }
+
+        // =========================
+        // ON DELAY
+        // =========================
+
+        case OUTPUT_ON_DELAY:
+        {
+            if (trigger_valid)
+            {
+                if (!a->output_timer_running)
+                {
+                    a->output_timer_running = true;
+
+                    a->output_timer_start = now;
+                }
+
+                uint32_t elapsed =
+                    pdTICKS_TO_MS(
+                        now -
+                        a->output_timer_start
+                    );
+
+                if (
+                    elapsed >=
+                    a->output_delay_ms
+                )
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                a->output_timer_running = false;
+            }
+
+            return false;
+        }
+
+        // =========================
+        // OFF DELAY
+        // =========================
+
+        case OUTPUT_OFF_DELAY:
+        {
+            if (trigger_valid)
+            {
+                a->output_timer_running = false;
+
+                return true;
+            }
+
+            if (!a->output_timer_running)
+            {
+                a->output_timer_running = true;
+
+                a->output_timer_start = now;
+            }
+
+            uint32_t elapsed =
+                pdTICKS_TO_MS(
+                    now -
+                    a->output_timer_start
+                );
+
+            if (
+                elapsed >=
+                a->output_delay_ms
+            )
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        default:
+            return false;
+            }
+}
 
 static void save_alarm_config(
     app_state_t *app,
@@ -644,30 +807,44 @@ void alarm_update(app_state_t *app)
     int32_t total =
         get_total_weight(app);
 
+    for (int i = 0; i < ALARM_COUNT; i++)
+    {
+        alarm_t *a =
+            &app->alarm[i];
+
+        bool condition =
+            alarm_condition(
+                a,
+                total
+            );
+
+        bool trigger_valid =
+            alarm_trigger_update(
+                a,
+                condition
+            );
+
+        bool output =
+            alarm_output_update(
+                a,
+                trigger_valid
+            );
+
+        a->output = output;
+    }
+
     gpio_set_level(
         pin_ch1_relay,
-
-        alarm_condition(
-            &app->alarm[0],
-            total
-        )
+        app->alarm[0].output
     );
 
     gpio_set_level(
         pin_ch2_relay,
-
-        alarm_condition(
-            &app->alarm[1],
-            total
-        )
+        app->alarm[1].output
     );
 
     gpio_set_level(
         pin_ch3_relay,
-
-        alarm_condition(
-            &app->alarm[2],
-            total
-        )
+        app->alarm[2].output
     );
 }

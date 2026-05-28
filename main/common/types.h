@@ -5,6 +5,8 @@
 #include "editor.h"
 #include "hx711_driver.h"
 #include "config.h"
+#include "freertos/FreeRTOS.h"
+
 
 typedef enum {
     APP_LOADING,
@@ -55,19 +57,68 @@ typedef struct
 
 } selector_t;
 
+typedef enum
+{
+    TRIGGER_LEVEL = 0,
+    TRIGGER_STABLE_HIGH
+
+} trigger_mode_t;
+
+typedef enum
+{
+    OUTPUT_DIRECT = 0,
+    OUTPUT_ON_DELAY,
+    OUTPUT_OFF_DELAY
+
+} output_mode_t;
+
 typedef struct
 {
     bool enabled;
 
     alarm_mode_t mode;
 
-    int32_t threshold_low;
-    int32_t threshold_high;
-    bool relay_state;
-
     selector_t selector;
 
+    int32_t threshold_low;
+    int32_t threshold_high;
+
+    // =========================
+    // MODE
+    // =========================
+
+    trigger_mode_t trigger_mode;
+
+    output_mode_t output_mode;
+
+    // =========================
+    // CONFIG
+    // =========================
+
+    uint32_t trigger_delay_ms;
+
+    uint32_t output_delay_ms;
+
+    // =========================
+    // RUNTIME
+    // =========================
+
+    bool output;
+
+    bool condition_prev;
+
+    // trigger timer
+    bool trigger_timer_running;
+
+    TickType_t trigger_timer_start;
+
+    // output timer
+    bool output_timer_running;
+
+    TickType_t output_timer_start;
+
 } alarm_t;
+
 typedef struct {
     uint32_t duty;
     editor_t editor;
