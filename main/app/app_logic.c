@@ -626,7 +626,78 @@ void app_handle_event(
                 evt
             );
 
+            if (evt == EVT_CENTER_VERY_LONG)
+            {
+                app->screen = APP_CONFIG_ALARM_ADVANCED;
+                app->adv_focus = ADV_FOCUS_TRIGGER;
+            }
+
             break;
+
+        case APP_CONFIG_ALARM_ADVANCED:
+        {
+            alarm_t *a =
+                &app->alarm[
+                    app->current_alarm
+                ];
+
+            // =========================
+            // EXIT
+            // =========================
+
+            if (evt == EVT_CENTER_VERY_LONG)
+            {
+                app->screen =
+                    APP_CONFIG_ALARM;
+
+                break;
+            }
+
+            // =========================
+            // PINDAH FOCUS
+            // =========================
+
+            if (evt == EVT_LEFT_LONG)
+            {
+                app->adv_focus =
+                    ADV_FOCUS_TRIGGER;
+            }
+
+            else if (evt == EVT_RIGHT_LONG)
+            {
+                app->adv_focus =
+                    ADV_FOCUS_OUTPUT;
+            }
+
+            // =========================
+            // HANDLE SELECTOR
+            // =========================
+
+            if (
+                app->adv_focus ==
+                ADV_FOCUS_TRIGGER
+            )
+            {
+                selector_handle_event(
+                    &a->trigger_selector,
+                    evt
+                );
+
+                a->trigger_mode =
+                    a->trigger_selector.selected;
+            }
+            else
+            {
+                selector_handle_event(
+                    &a->output_selector,
+                    evt
+                );
+
+                a->output_mode =
+                    a->output_selector.selected;
+            }
+        }
+        break;
 
         case APP_CALIB_TARE:
 

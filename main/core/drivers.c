@@ -300,6 +300,67 @@ void lcd_task(void *pv)
             }
             break;
 
+            case APP_CONFIG_ALARM_ADVANCED:
+            {
+                alarm_t *a =
+                    &snapshot.alarm[
+                        snapshot.current_alarm
+                    ];
+
+                // =========================
+                // TRIGGER MODE
+                // =========================
+
+                lcd_set_cursor(0, 0);
+
+                if (
+                    snapshot.adv_focus ==
+                    ADV_FOCUS_TRIGGER
+                )
+                {
+                    lcd_write_char('>');
+                }
+                else
+                {
+                    lcd_write_char(' ');
+                }
+
+                lcd_write_string(
+                    a->trigger_selector.items[
+                        a->trigger_selector.selected
+                    ]
+                );
+
+                // =========================
+                // OUTPUT MODE
+                // =========================
+
+                lcd_set_cursor(0, 7);
+
+                if (
+                    snapshot.adv_focus ==
+                    ADV_FOCUS_OUTPUT
+                )
+                {
+                    lcd_write_char('>');
+                }
+                else
+                {
+                    lcd_write_char(' ');
+                }
+
+                lcd_write_string(
+                    a->output_selector.items[
+                        a->output_selector.selected
+                    ]
+                );
+
+                // kosongkan row bawah
+                lcd_set_cursor(1, 0);
+                lcd_write_string("                ");
+            }
+            break;
+
             case APP_CALIB_TARE:
                 lcd_set_cursor(0, 0);
                 lcd_write_string("TARE        ");

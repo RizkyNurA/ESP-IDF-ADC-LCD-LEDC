@@ -51,6 +51,19 @@ static const char *alarm_mode_items[] =
     "LUAR"
 };
 
+const char *trigger_mode_items[] =
+{
+    "LEVEL ",
+    "STABLE"
+};
+
+const char *output_mode_items[] =
+{
+    "DIRECT ",
+    "ON DEL ",
+    "OFF DEL"
+};
+
 /* ===================== MAIN ===================== */
 void app_main(void)
 {
@@ -65,62 +78,79 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     for (int i = 0; i < ALARM_COUNT; i++)
-{
-    app.alarm[i].enabled = true;
+    {
+        app.alarm[i].enabled = true;
 
-    app.alarm[i].selector.items =
-        alarm_mode_items;
+        app.alarm[i].selector.items =
+            alarm_mode_items;
 
-    app.alarm[i].selector.count = 4;
+        app.alarm[i].selector.count = 4;
+        app.alarm[i].trigger_selector.items = trigger_mode_items;
 
-    char key[16];
+        app.alarm[i].trigger_selector.count = 2;
 
-    // =========================
-    // LOAD MODE
-    // =========================
+        app.alarm[i].trigger_selector.selected = 0;
 
-    make_nvs_key(
-        key,
-        sizeof(key),
-        "alm_mode",
-        i
-    );
+        app.alarm[i].trigger_mode =
+            TRIGGER_LEVEL;
 
-    app.alarm[i].selector.selected =
-        nvs_load_i32(key, 0);
+        app.alarm[i].output_selector.items = output_mode_items;
 
-    app.alarm[i].mode =
-        (alarm_mode_t)
-        app.alarm[i].selector.selected;
+        app.alarm[i].output_selector.count = 3;
 
-    // =========================
-    // LOAD LOW
-    // =========================
+        app.alarm[i].output_selector.selected = 0;
 
-    make_nvs_key(
-        key,
-        sizeof(key),
-        "alm_low",
-        i
-    );
+        app.alarm[i].output_mode =
+            OUTPUT_DIRECT;
 
-    app.alarm[i].threshold_low =
-        nvs_load_i32(key, 1000);
+        char key[16];
 
-    // =========================
-    // LOAD HIGH
-    // =========================
+        // =========================
+        // LOAD MODE
+        // =========================
 
-    make_nvs_key(
-        key,
-        sizeof(key),
-        "alm_high",
-        i
-    );
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "alm_mode",
+            i
+        );
 
-    app.alarm[i].threshold_high =
-        nvs_load_i32(key, 5000);
-}
+        app.alarm[i].selector.selected =
+            nvs_load_i32(key, 0);
+
+        app.alarm[i].mode =
+            (alarm_mode_t)
+            app.alarm[i].selector.selected;
+
+        // =========================
+        // LOAD LOW
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "alm_low",
+            i
+        );
+
+        app.alarm[i].threshold_low =
+            nvs_load_i32(key, 1000);
+
+        // =========================
+        // LOAD HIGH
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "alm_high",
+            i
+        );
+
+        app.alarm[i].threshold_high =
+            nvs_load_i32(key, 5000);
+    }
 
     /* ===================== RTOS INIT ===================== */
     app_mutex = xSemaphoreCreateMutex();

@@ -14,12 +14,20 @@ typedef enum {
     APP_MENU,
     APP_MONITOR,
     APP_CONFIG_ALARM,
+    APP_CONFIG_ALARM_ADVANCED,
     APP_CALIB_TARE,
     APP_CALIB_TARE_WAIT,
     APP_CALIB_INPUT,
     APP_CALIB_INPUT_WAIT,
     APP_CALIB_DONE
 } app_screen_t;
+
+typedef enum
+{
+    ADV_FOCUS_TRIGGER,
+    ADV_FOCUS_OUTPUT
+
+} alarm_adv_focus_t;
 
 typedef enum
 {
@@ -117,6 +125,9 @@ typedef struct
 
     TickType_t output_timer_start;
 
+    selector_t trigger_selector;
+    selector_t output_selector;
+
 } alarm_t;
 
 typedef struct {
@@ -132,6 +143,7 @@ typedef struct {
     alarm_ui_state_t ui_state;
     uint8_t current_alarm;
     selector_t menu_selector;
+    alarm_adv_focus_t adv_focus;
 
 } app_state_t;
 typedef struct {
