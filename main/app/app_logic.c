@@ -195,6 +195,18 @@ static void save_alarm_config(
 
     make_nvs_key(key, sizeof(key), "alm_high", idx);
     nvs_save_i32(key, app->alarm[idx].threshold_high);
+
+    make_nvs_key(key, sizeof(key), "trig_mode", idx);
+    nvs_save_i32(key, app->alarm[idx].trigger_mode);
+
+    make_nvs_key(key, sizeof(key), "out_mode", idx);
+    nvs_save_i32(key, app->alarm[idx].output_mode);
+
+    make_nvs_key(key, sizeof(key), "trig_dly", idx);
+    nvs_save_i32(key, app->alarm[idx].trigger_delay_ms);
+
+    make_nvs_key(key, sizeof(key), "out_dly", idx);
+    nvs_save_i32(key, app->alarm[idx].output_delay_ms);
 }
 
 static void load_alarm_editor(

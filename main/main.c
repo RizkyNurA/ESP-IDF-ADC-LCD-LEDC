@@ -150,7 +150,74 @@ void app_main(void)
 
         app.alarm[i].threshold_high =
             nvs_load_i32(key, 5000);
-    }
+
+        
+        // =========================
+        // LOAD TRIGGER MODE
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "trig_mode",
+            i
+        );
+
+        app.alarm[i].trigger_selector.selected =
+            nvs_load_i32(key, 0);
+
+        app.alarm[i].trigger_mode =
+            (trigger_mode_t)
+            app.alarm[i].trigger_selector.selected;
+
+        // =========================
+        // LOAD OUTPUT MODE
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "out_mode",
+            i
+        );
+
+        app.alarm[i].output_selector.selected =
+            nvs_load_i32(key, 0);
+
+        app.alarm[i].output_mode =
+            (output_mode_t)
+            app.alarm[i].output_selector.selected;
+
+        // =========================
+        // LOAD TRIGGER DELAY
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "trig_dly",
+            i
+        );
+
+        app.alarm[i].trigger_delay_ms =
+            nvs_load_i32(key, 0);
+
+        // =========================
+        // LOAD OUTPUT DELAY
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "out_dly",
+            i
+        );
+
+        app.alarm[i].output_delay_ms =
+            nvs_load_i32(key, 0);
+            }
+
+    
 
     /* ===================== RTOS INIT ===================== */
     app_mutex = xSemaphoreCreateMutex();
