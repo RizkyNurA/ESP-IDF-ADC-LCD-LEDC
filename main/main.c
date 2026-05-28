@@ -21,6 +21,7 @@
 /* ===================== SYSTEM ===================== */
 #include "system/app_context.h"
 #include "utils.h"
+#include "selector.h"
 
 /* ===================== CORE ===================== */
 #include "core/drivers.h"
@@ -41,6 +42,12 @@
 /* ===================== GLOBAL ===================== */
 static hx711_t scale[CONFIG_NUM_LOADCELL];
 static hx711_ctx_t ctx[CONFIG_NUM_LOADCELL];
+
+static const char *alarm_mode_items[] =
+{
+    "HIGH",
+    "LOW "
+};
 
 /* ===================== MAIN ===================== */
 void app_main(void)
@@ -63,6 +70,19 @@ void app_main(void)
 
     app.alarm_threshold[2] =
         nvs_load_i32("alarm3", 3000);
+
+    char key[16];
+
+for (int i = 0; i < 3; i++)
+{
+    app.alarm_mode[i].items = alarm_mode_items;
+    app.alarm_mode[i].count = 2;
+
+    make_nvs_key(key, sizeof(key), "alarm_mode", i);
+
+    app.alarm_mode[i].selected =
+        nvs_load_i32(key, 0);
+}
 
     /* ===================== RTOS INIT ===================== */
     app_mutex = xSemaphoreCreateMutex();
@@ -137,7 +157,6 @@ void app_main(void)
     app.system_ready = true;
     app.lc_index = 0;
 
-    char key[16];
 
     for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
     {

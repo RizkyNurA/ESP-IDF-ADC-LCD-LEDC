@@ -13,16 +13,16 @@
 #define pin_sck_hx711_2     GPIO_NUM_27
 #define pin_sck_hx711       GPIO_NUM_12 
 
-#define CONFIG_NUM_LOADCELL 1
+#define CONFIG_NUM_LOADCELL 4
 
 /* ===================== LCD  ==============rr======= */
 #define pin_sda_lcd       GPIO_NUM_21
 #define pin_scl_lcd       GPIO_NUM_22
 
 /* ===================== BUTTON ===================== */
-#define pin_button_left   GPIO_NUM_36
+#define pin_button_left   GPIO_NUM_34
 #define pin_button_center GPIO_NUM_39
-#define pin_button_right  GPIO_NUM_34
+#define pin_button_right  GPIO_NUM_36
 
 /* ===================== RELAY ===================== */
 #define pin_ch1_relay     GPIO_NUM_5

@@ -15,8 +15,6 @@
 #include "driver/ledc.h"
 
 #include "app_logic.h"
-
-
 static app_screen_t last_screen = APP_LOADING;
 
 void GPIO_Initialation(gpio_num_t left_button, 
@@ -104,6 +102,50 @@ void app_task(void *pv)
 //         vTaskDelay(pdMS_TO_TICKS(10));
 //     }
 // }
+static void render_alarm_screen(
+    app_state_t *snapshot,
+    int idx,
+    const char *title,
+    bool blink_state
+)
+{
+    lcd_set_cursor(0, 0);
+    lcd_write_string(title);
+
+    lcd_set_cursor(0, 9);
+
+    lcd_write_string(
+        snapshot->alarm_mode[idx].items[
+            snapshot->alarm_mode[idx].selected
+        ]
+    );
+
+    for (int i = 0; i < 6; i++)
+    {
+        uint8_t digit =
+            editor_get_digit(
+                &snapshot->editor,
+                i
+            );
+
+        uint8_t col =
+            EDITOR_COL_START + i;
+
+        lcd_set_cursor(1, col);
+
+        bool blink =
+            snapshot->alarm_editing &&
+            editor_should_blink(
+                &snapshot->editor,
+                i
+            );
+
+        if (blink && blink_state)
+            lcd_write_char(' ');
+        else
+            lcd_write_char('0' + digit);
+    }
+}
 
 void lcd_task(void *pv)
 {
@@ -228,72 +270,36 @@ void lcd_task(void *pv)
                 break;
                 
             case APP_CONFIG_ALARM_1:
-                lcd_set_cursor(0, 0);
-                lcd_write_string("ALARM1:     ");
 
-                for (int i = 0; i < 6; i++)
-                {
-                    uint8_t digit =
-                        editor_get_digit(&snapshot.editor, i);
+                render_alarm_screen(
+                    &snapshot,
+                    0,
+                    "ALARM1:",
+                    blink_state
+                );
 
-                    uint8_t col = EDITOR_COL_START + i;
-
-                    lcd_set_cursor(1, col);
-
-                    bool blink =
-                        editor_should_blink(&snapshot.editor, i);
-
-                    if (blink && blink_state)
-                        lcd_write_char(' ');
-                    else
-                        lcd_write_char('0' + digit);
-                }
                 break;
 
             case APP_CONFIG_ALARM_2:
-                lcd_set_cursor(0, 0);
-                lcd_write_string("ALARM2:     ");
 
-                for (int i = 0; i < 6; i++)
-                {
-                    uint8_t digit =
-                        editor_get_digit(&snapshot.editor, i);
+                render_alarm_screen(
+                    &snapshot,
+                    1,
+                    "ALARM2:",
+                    blink_state
+                );
 
-                    uint8_t col = EDITOR_COL_START + i;
-
-                    lcd_set_cursor(1, col);
-
-                    bool blink =
-                        editor_should_blink(&snapshot.editor, i);
-
-                    if (blink && blink_state)
-                        lcd_write_char(' ');
-                    else
-                        lcd_write_char('0' + digit);
-                }
                 break;
 
             case APP_CONFIG_ALARM_3:
-                lcd_set_cursor(0, 0);
-                lcd_write_string("ALARM3:     ");
 
-                for (int i = 0; i < 6; i++)
-                {
-                    uint8_t digit =
-                        editor_get_digit(&snapshot.editor, i);
+                render_alarm_screen(
+                    &snapshot,
+                    2,
+                    "ALARM3:",
+                    blink_state
+                );
 
-                    uint8_t col = EDITOR_COL_START + i;
-
-                    lcd_set_cursor(1, col);
-
-                    bool blink =
-                        editor_should_blink(&snapshot.editor, i);
-
-                    if (blink && blink_state)
-                        lcd_write_char(' ');
-                    else
-                        lcd_write_char('0' + digit);
-                }
                 break;
 
             case APP_CALIB_TARE:

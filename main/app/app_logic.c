@@ -5,100 +5,234 @@
 #include "config.h"
 #include "esp_log.h"
 #include "utils.h"
+#include "selector.h"
+#include "types.h"
 
 #define KNOWN_MAX 999999
+#define ALARM_COUNT 3
+#define WAIT_TICKS  50
 
 static int32_t get_average_single_sensor(int index, size_t samples);
-
-void app_update(app_state_t *app)
+static void save_alarm_config(app_state_t *app, int idx)
 {
-    int32_t known = editor_get_value(&app->editor);
+    char key[16];
 
-    // =========================
-    // LIMIT 5 DIGIT (GRAM)
-    // =========================
-   
-    if (known < 0) known = 0;
-    if (known > KNOWN_MAX) known = KNOWN_MAX;
+    make_nvs_key(key, sizeof(key), "alarm", idx);
+    nvs_save_i32(key, app->alarm_threshold[idx]);
 
+    make_nvs_key(key, sizeof(key), "alarm_mode", idx);
+    nvs_save_i32(
+        key,
+        app->alarm_mode[idx].selected
+    );
+}
+
+static void load_next_alarm_editor(
+    app_state_t *app,
+    int idx
+)
+{
+    editor_set_value(
+        &app->editor,
+        app->alarm_threshold[idx]
+    );
+
+    app->editor.state = UI_NAV;
+}
+
+static bool handle_alarm_config(
+    app_state_t *app,
+    app_event_t evt,
+    int idx,
+    app_screen_t next_screen
+)
+{
     // =========================
-    // HITUNG WEIGHT PER SENSOR (GRAM)
+    // SELECTOR
     // =========================
-    for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+
+    if (!app->alarm_editing)
     {
-        app->lc[i].weight = calculate_weight(
-            app->lc[i].raw,
-            app->lc[i].tare,
-            app->lc[i].calib,
-            known
+        selector_handle_event(
+            &app->alarm_mode[idx],
+            evt
         );
+
+        // masuk edit digit
+        if (evt == EVT_RIGHT_LONG)
+        {
+            app->alarm_editing = true;
+            app->editor.state = UI_NAV;
+        }
     }
 
     // =========================
-    // STATE MACHINE (TETAP)
+    // EDITOR
     // =========================
+
+    else
+    {
+        editor_handle_event(
+            &app->editor,
+            evt
+        );
+
+        // keluar edit
+        if (evt == EVT_LEFT_LONG)
+        {
+            app->alarm_editing = false;
+            app->editor.state = UI_NAV;
+        }
+    }
+
+    // =========================
+    // SAVE + NEXT
+    // =========================
+
+    if (evt == EVT_CENTER_LONG)
+    {
+        app->alarm_threshold[idx] =
+            editor_get_value(
+                &app->editor
+            );
+
+        save_alarm_config(app, idx);
+
+        app->alarm_editing = false;
+
+        if (next_screen != APP_IDLE)
+        {
+            load_next_alarm_editor(
+                app,
+                idx + 1
+            );
+        }
+
+        app->screen = next_screen;
+
+        return true;
+    }
+
+    return false;
+}
+
+void app_update(app_state_t *app)
+{
+    int32_t known =
+        editor_get_value(&app->editor);
+
+    if (known < 0)
+        known = 0;
+
+    if (known > KNOWN_MAX)
+        known = KNOWN_MAX;
+
+    // =========================
+    // UPDATE WEIGHT
+    // =========================
+
+    for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
+    {
+        app->lc[i].weight =
+            calculate_weight(
+                app->lc[i].raw,
+                app->lc[i].tare,
+                app->lc[i].calib,
+                known
+            );
+    }
+
+    // =========================
+    // WAIT STATE
+    // =========================
+
     switch (app->screen)
     {
         case APP_CALIB_TARE_WAIT:
+        {
             app->wait_counter++;
 
-            if (app->wait_counter > 50)
+            if (app->wait_counter < WAIT_TICKS)
+                break;
+
+            char key[16];
+
+            for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
             {
-                char key[16];
+                int32_t tare =
+                    get_average_single_sensor(
+                        i,
+                        SAMPLE_CALIB_VALUE
+                    );
 
-                for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
-                {
-                    int32_t tare = get_average_single_sensor(i, SAMPLE_CALIB_VALUE);
+                app->lc[i].tare = tare;
 
-                    app->lc[i].tare = tare;
+                make_nvs_key(
+                    key,
+                    sizeof(key),
+                    "tare",
+                    i
+                );
 
-                    make_nvs_key(key, sizeof(key), "tare", i);
-                    nvs_save_i32(key, tare);
-                }
-
-                app->screen = APP_CALIB_INPUT;
+                nvs_save_i32(key, tare);
             }
-            break;
+
+            app->screen = APP_CALIB_INPUT;
+        }
+        break;
 
         case APP_CALIB_INPUT_WAIT:
+        {
             app->wait_counter++;
 
-            if (app->wait_counter > 50)
+            if (app->wait_counter < WAIT_TICKS)
+                break;
+
+            char key[16];
+
+            int32_t calib_value =
+                editor_get_value(&app->editor);
+
+            nvs_save_i32(
+                "editor",
+                calib_value
+            );
+
+            for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
             {
-                char key[16];
+                int32_t calib =
+                    get_average_single_sensor(
+                        i,
+                        SAMPLE_CALIB_VALUE
+                    );
 
-                int32_t editor = editor_get_value(&app->editor);
+                app->lc[i].calib = calib;
 
-                // SAVE DALAM GRAM
-                if (known < 0) known = 0;
-                if (known > KNOWN_MAX) known = KNOWN_MAX;
+                make_nvs_key(
+                    key,
+                    sizeof(key),
+                    "calib",
+                    i
+                );
 
-                nvs_save_i32("editor", editor);
-
-                for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
-                {
-                    int32_t calib = get_average_single_sensor(i, SAMPLE_CALIB_VALUE);
-
-                    app->lc[i].calib = calib;
-
-                    make_nvs_key(key, sizeof(key), "calib", i);
-                    nvs_save_i32(key, calib);
-                }
-
-                app->screen = APP_CALIB_DONE;
+                nvs_save_i32(key, calib);
             }
-            break;
+
+            app->screen = APP_CALIB_DONE;
+        }
+        break;
 
         default:
             break;
     }
 }
 
-void app_handle_event(app_state_t *app, app_event_t evt)
+void app_handle_event(
+    app_state_t *app,
+    app_event_t evt
+)
 {
-    ESP_LOGI("BTN", "event = %d", evt);
-    void nvs_save_i32(const char *key, int32_t val);
-    int32_t nvs_load_i32(const char *key, int32_t def);
+    ESP_LOGI("BTN", "event=%d", evt);
 
     switch (app->screen)
     {
@@ -106,122 +240,113 @@ void app_handle_event(app_state_t *app, app_event_t evt)
             break;
 
         case APP_IDLE:
+
             if (evt == EVT_CENTER_SHORT)
+            {
                 app->screen = APP_MENU;
+            }
+
             break;
 
         case APP_MENU:
-            if (evt == EVT_CENTER_SHORT)
+
+            if (evt == EVT_LEFT_SHORT)
+            {
+                app->screen = APP_MONITOR;
+            }
+            else if (evt == EVT_CENTER_SHORT)
             {
                 app->screen = APP_CALIB_TARE;
             }
-            else if (evt == EVT_LEFT_SHORT)
+            else if (evt == EVT_RIGHT_SHORT)
             {
-                app->screen = APP_MONITOR;
+
+                load_next_alarm_editor(app, 0);
+                app->alarm_editing = false;
+                app->screen = APP_CONFIG_ALARM_1;
+
+                
+
             }
             else if (evt == EVT_CENTER_LONG)
             {
                 app->screen = APP_IDLE;
             }
-            else if (evt == EVT_RIGHT_SHORT)
-            {
-                editor_set_value(&app->editor, app->alarm_threshold[0]);
-                app->screen = APP_CONFIG_ALARM_1;
-            }
+
             break;
-        
-        case APP_CONFIG_ALARM_1 :
-            editor_handle_event(&app->editor, evt); //aduh gimana dah ini
-            if (evt == EVT_CENTER_LONG)
-            {
-                app->alarm_threshold[0] =
-                    editor_get_value(&app->editor);
 
-                nvs_save_i32(
-                    "alarm1",
-                    app->alarm_threshold[0]
-                );
+        case APP_CONFIG_ALARM_1:
 
-                editor_set_value(
-                    &app->editor,
-                    app->alarm_threshold[1]
-                );
+            handle_alarm_config(
+                app,
+                evt,
+                0,
+                APP_CONFIG_ALARM_2
+            );
 
-                app->screen = APP_CONFIG_ALARM_2;
-            }
             break;
+
         case APP_CONFIG_ALARM_2:
-            editor_handle_event(&app->editor, evt);
 
-            if (evt == EVT_CENTER_LONG)
-            {
-                app->alarm_threshold[1] =
-                    editor_get_value(&app->editor);
+            handle_alarm_config(
+                app,
+                evt,
+                1,
+                APP_CONFIG_ALARM_3
+            );
 
-                nvs_save_i32(
-                    "alarm2",
-                    app->alarm_threshold[1]
-                );
-
-                editor_set_value(
-                    &app->editor,
-                    app->alarm_threshold[2]
-                );
-                app->screen = APP_CONFIG_ALARM_3;
-            }
             break;
 
         case APP_CONFIG_ALARM_3:
 
-            editor_handle_event(&app->editor, evt);
-
-            if (evt == EVT_CENTER_LONG)
-            {
-                app->alarm_threshold[2] =
-                    editor_get_value(&app->editor);
-
-                nvs_save_i32(
-                    "alarm3",
-                    app->alarm_threshold[2]
-                );
-
-                app->screen = APP_IDLE;
-            }
+            handle_alarm_config(
+                app,
+                evt,
+                2,
+                APP_IDLE
+            );
 
             break;
 
         case APP_CALIB_TARE:
-            if (evt == EVT_LEFT_SHORT)
-            {
-                app->wait_counter = 0;
-                app->screen = APP_CALIB_TARE_WAIT;
-            }
-            else if (evt == EVT_CENTER_LONG)
-            {
-                app->wait_counter = 0;
-                app->screen = APP_CALIB_TARE_WAIT;
-            }
-            break;
 
-        case APP_CALIB_TARE_WAIT:
+            if (
+                evt == EVT_LEFT_SHORT ||
+                evt == EVT_CENTER_LONG
+            )
+            {
+                app->wait_counter = 0;
+
+                app->screen =
+                    APP_CALIB_TARE_WAIT;
+            }
+
             break;
 
         case APP_CALIB_INPUT:
-            editor_handle_event(&app->editor, evt);
+
+            editor_handle_event(
+                &app->editor,
+                evt
+            );
 
             if (evt == EVT_CENTER_LONG)
             {
                 app->wait_counter = 0;
-                app->screen = APP_CALIB_INPUT_WAIT;
-            }
-            break;
 
-        case APP_CALIB_INPUT_WAIT:
+                app->screen =
+                    APP_CALIB_INPUT_WAIT;
+            }
+
             break;
 
         case APP_CALIB_DONE:
+
             if (evt == EVT_CENTER_LONG)
+            {
                 app->screen = APP_IDLE;
+            }
+
             break;
 
         default:
@@ -363,16 +488,25 @@ void alarm_update(app_state_t *app)
 
     gpio_set_level(
         pin_ch1_relay,
-        total >= app->alarm_threshold[0]
+
+        app->alarm_mode[0].selected == ALARM_MODE_HIGH
+        ? total >= app->alarm_threshold[0]
+        : total <= app->alarm_threshold[0]
     );
 
     gpio_set_level(
         pin_ch2_relay,
-        total >= app->alarm_threshold[1]
+
+        app->alarm_mode[1].selected == ALARM_MODE_HIGH
+        ? total >= app->alarm_threshold[1]
+        : total <= app->alarm_threshold[1]
     );
 
     gpio_set_level(
         pin_ch3_relay,
-        total >= app->alarm_threshold[2]
+
+        app->alarm_mode[2].selected == ALARM_MODE_HIGH
+        ? total >= app->alarm_threshold[2]
+        : total <= app->alarm_threshold[2]
     );
 }

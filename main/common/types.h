@@ -28,6 +28,15 @@ typedef struct {
     float   weight;
 } loadcell_t;
 
+typedef struct
+{
+    uint8_t selected;
+    uint8_t count;
+
+    const char **items;
+
+} selector_t;
+
 typedef struct {
     uint32_t duty;
     editor_t editor;
@@ -38,6 +47,8 @@ typedef struct {
     uint8_t lc_index;
     int current_lc;
     int32_t alarm_threshold[3];
+    selector_t alarm_mode[3];
+    bool alarm_editing;
 
 } app_state_t;
 typedef struct {
@@ -68,14 +79,5 @@ typedef enum
     ALARM_MODE_HIGH,
     ALARM_MODE_LOW
 } alarm_mode_t;
-
-typedef struct
-{
-    uint8_t selected;
-    uint8_t count;
-
-    const char **items;
-
-} selector_t;
 
 #endif // TYPES_H
