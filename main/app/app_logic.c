@@ -419,13 +419,67 @@ static void handle_alarm_config(
     }
 
     // =====================================================
+// EDIT TRIGGER DELAY
+// =====================================================
+
+else if (
+    app->ui_state ==
+    ALARM_UI_EDIT_TRIGGER_DELAY
+)
+{
+    editor_handle_event(
+        &app->editor,
+        evt
+    );
+
+    a->trigger_delay_ms =
+        editor_get_value(
+            &app->editor
+        );
+
+    // back
+    if (evt == EVT_LEFT_LONG)
+    {
+        app->ui_state =
+            ALARM_UI_ADVANCED;
+    }
+}
+
+// =====================================================
+// EDIT OUTPUT DELAY
+// =====================================================
+
+else if (
+    app->ui_state ==
+    ALARM_UI_EDIT_OUTPUT_DELAY
+)
+{
+    editor_handle_event(
+        &app->editor,
+        evt
+    );
+
+    a->output_delay_ms =
+        editor_get_value(
+            &app->editor
+        );
+
+    // back
+    if (evt == EVT_LEFT_LONG)
+    {
+        app->ui_state =
+            ALARM_UI_ADVANCED;
+    }
+}
+
+    // =====================================================
     // ADVANCED MENU
     // =====================================================
 
     
     else if (
-        app->ui_state ==
-        ALARM_UI_ADVANCED
+    app->ui_state ==
+    ALARM_UI_ADVANCED
     )
     {
         // =========================
@@ -440,158 +494,123 @@ static void handle_alarm_config(
             app->ui_state =
                 ALARM_UI_SELECT;
 
-            app->adv_editing =
-                false;
-
             return;
         }
 
-        // =================================================
-        // CURSOR NAVIGATION
-        // =================================================
+        // =========================
+        // CURSOR
+        // =========================
 
-        if (!app->adv_editing)
+        if (
+            evt == EVT_RIGHT_LONG &&
+            app->adv_cursor <
+            ADV_ITEM_OUTPUT_DELAY
+        )
         {
+            app->adv_cursor++;
+        }
+
+        else if (
+            evt == EVT_LEFT_LONG &&
+            app->adv_cursor >
+            ADV_ITEM_TRIGGER_MODE
+        )
+        {
+            app->adv_cursor--;
+        }
+
+        // =========================
+        // TRIGGER MODE
+        // =========================
+
+        if (
+            app->adv_cursor ==
+            ADV_ITEM_TRIGGER_MODE
+        )
+        {
+            selector_handle_event(
+                &a->trigger_selector,
+                evt
+            );
+
+            a->trigger_mode =
+                (trigger_mode_t)
+                a->trigger_selector.selected;
+        }
+
+        // =========================
+        // OUTPUT MODE
+        // =========================
+
+        else if (
+            app->adv_cursor ==
+            ADV_ITEM_OUTPUT_MODE
+        )
+        {
+            selector_handle_event(
+                &a->output_selector,
+                evt
+            );
+
+            a->output_mode =
+                (output_mode_t)
+                a->output_selector.selected;
+        }
+
+        // =========================
+        // EDIT TRIGGER DELAY
+        // =========================
+
+        else if (
+            app->adv_cursor ==
+            ADV_ITEM_TRIGGER_DELAY
+        )
+        {
+            // enter edit
             if (
-                evt == EVT_RIGHT_LONG &&
-                app->adv_cursor <
-                ADV_ITEM_OUTPUT_DELAY
+                evt ==
+                EVT_CENTER_SHORT
             )
             {
-                app->adv_cursor++;
-            }
+                app->ui_state =
+                    ALARM_UI_EDIT_TRIGGER_DELAY;
 
-            else if (
-                evt == EVT_LEFT_LONG &&
-                app->adv_cursor >
-                ADV_ITEM_TRIGGER_MODE
-            )
-            {
-                app->adv_cursor--;
+                editor_set_value(
+                    &app->editor,
+                    a->trigger_delay_ms
+                );
+
+                return;
             }
         }
 
-        // =================================================
-        // TOGGLE EDIT MODE
-        // =================================================
+        // =========================
+        // EDIT OUTPUT DELAY
+        // =========================
 
-        if (evt == EVT_CENTER_SHORT)
+        else if (
+            app->adv_cursor ==
+            ADV_ITEM_OUTPUT_DELAY
+        )
         {
-            app->adv_editing =
-                !app->adv_editing;
-
-            // load value into editor
-            if (app->adv_editing)
+            // enter edit
+            if (
+                evt ==
+                EVT_CENTER_SHORT
+            )
             {
-                switch(app->adv_cursor)
-                {
-                    case ADV_ITEM_TRIGGER_DELAY:
+                app->ui_state =
+                    ALARM_UI_EDIT_OUTPUT_DELAY;
 
-                        editor_set_value(
-                            &app->editor,
-                            a->trigger_delay_ms
-                        );
+                editor_set_value(
+                    &app->editor,
+                    a->output_delay_ms
+                );
 
-                        break;
-
-                    case ADV_ITEM_OUTPUT_DELAY:
-
-                        editor_set_value(
-                            &app->editor,
-                            a->output_delay_ms
-                        );
-
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-
-            return;
-        }
-
-        // =================================================
-        // HANDLE EDIT
-        // =================================================
-
-        if (app->adv_editing)
-        {
-            switch(app->adv_cursor)
-            {
-                // =========================================
-                // TRIGGER MODE
-                // =========================================
-
-                case ADV_ITEM_TRIGGER_MODE:
-
-                    selector_handle_event(
-                        &a->trigger_selector,
-                        evt
-                    );
-
-                    a->trigger_mode =
-                        (trigger_mode_t)
-                        a->trigger_selector.selected;
-
-                    break;
-
-                // =========================================
-                // OUTPUT MODE
-                // =========================================
-
-                case ADV_ITEM_OUTPUT_MODE:
-
-                    selector_handle_event(
-                        &a->output_selector,
-                        evt
-                    );
-
-                    a->output_mode =
-                        (output_mode_t)
-                        a->output_selector.selected;
-
-                    break;
-
-                // =========================================
-                // TRIGGER DELAY
-                // =========================================
-
-                case ADV_ITEM_TRIGGER_DELAY:
-
-                    editor_handle_event(
-                        &app->editor,
-                        evt
-                    );
-
-                    a->trigger_delay_ms =
-                        editor_get_value(
-                            &app->editor
-                        );
-
-                    break;
-
-                // =========================================
-                // OUTPUT DELAY
-                // =========================================
-
-                case ADV_ITEM_OUTPUT_DELAY:
-
-                    editor_handle_event(
-                        &app->editor,
-                        evt
-                    );
-
-                    a->output_delay_ms =
-                        editor_get_value(
-                            &app->editor
-                        );
-
-                    break;
+                return;
             }
         }
     }
-
     // =====================================================
     // SAVE + NEXT
     // =====================================================

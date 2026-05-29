@@ -232,184 +232,176 @@ void lcd_task(void *pv)
                         snapshot.current_alarm
                     ];
 
-                lcd_set_cursor(0, 0);
-
-                lcd_write_string("A");
-                lcd_write_char('1' + snapshot.current_alarm);
-                lcd_write_string(":");
-
-                switch (a->mode)
-                {
-                    case ALARM_ATAS:
-                        lcd_write_string("ATAS ");
-                        break;
-
-                    case ALARM_BAWAH:
-                        lcd_write_string("BAWAH");
-                        break;
-
-                    case ALARM_DALAM:
-                        lcd_write_string("DALAM");
-                        break;
-
-                    case ALARM_LUAR:
-                        lcd_write_string("LUAR ");
-                        break;
-
-                    default:
-                        lcd_write_string("-----");
-                        break;
-                }
-
-                // =========================
-                // VALUE DISPLAY
-                // =========================
-
-                for (int i = 0; i < 6; i++)
-                {
-                    uint8_t digit =
-                        editor_get_digit(
-                            &snapshot.editor,
-                            i
-                        );
-
-                    uint8_t col =
-                        EDITOR_COL_START + i;
-
-                    lcd_set_cursor(1, col);
-
-                    bool blink  =
-                    (
-                        snapshot.ui_state ==
-                        ALARM_UI_EDIT_VALUE1 ||
-
-                        snapshot.ui_state ==
-                        ALARM_UI_EDIT_VALUE2
-                    )
-                    &&
-                    editor_should_blink(
-                        &snapshot.editor,
-                        i
-                    );
-
-                    if (blink && blink_state)
-                        lcd_write_char(' ');
-                    else
-                        lcd_write_char('0' + digit);
-                }
-            }
-            break;
-
-            case APP_CONFIG_ALARM_ADVANCED:
-            {
-                alarm_t *a =
-                    &snapshot.alarm[
-                        snapshot.current_alarm
-                    ];
-
-                // clear
-                lcd_set_cursor(0, 0);
-                lcd_write_string("                ");
-
-                lcd_set_cursor(1, 0);
-                lcd_write_string("                ");
-
-                // =========================
-                // TRIGGER MODE
-                // =========================
+                // =====================================================
+                // ADVANCED UI
+                // =====================================================
 
                 if (
-                    snapshot.adv_cursor ==
-                    ADV_ITEM_TRIGGER_MODE
+                    snapshot.ui_state ==
+                    ALARM_UI_ADVANCED
                 )
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("TRIGGER MODE");
+                    lcd_write_string("                ");
 
                     lcd_set_cursor(1, 0);
+                    lcd_write_string("                ");
 
-                    lcd_write_string(
-                        a->trigger_selector.items[
-                            a->trigger_selector.selected
-                        ]
-                    );
-                }
+                    // =========================================
+                    // TRIGGER MODE
+                    // =========================================
 
-                // =========================
-                // OUTPUT MODE
-                // =========================
-
-                else if (
-                    snapshot.adv_cursor ==
-                    ADV_ITEM_OUTPUT_MODE
-                )
-                {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("OUTPUT MODE");
-
-                    lcd_set_cursor(1, 0);
-
-                    lcd_write_string(
-                        a->output_selector.items[
-                            a->output_selector.selected
-                        ]
-                    );
-                }
-
-                // =========================
-                // TRIGGER DELAY
-                // =========================
-
-                else if (
-                    snapshot.adv_cursor ==
-                    ADV_ITEM_TRIGGER_DELAY
-                )
-                {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string("TRIG DELAY MS");
-
-                    for (int i = 0; i < 6; i++)
+                    if (
+                        snapshot.adv_cursor ==
+                        ADV_ITEM_TRIGGER_MODE
+                    )
                     {
-                        uint8_t digit =
-                            editor_get_digit(
-                                &snapshot.editor,
-                                i
-                            );
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("TRIGGER MODE");
 
-                        uint8_t col =
-                            EDITOR_COL_START + i;
+                        lcd_set_cursor(1, 0);
 
-                        lcd_set_cursor(1, col);
-
-                        bool blink =
-                        (
-                            snapshot.ui_state ==
-                            ALARM_UI_EDIT_TRIGGER_DELAY
-                        )
-                        &&
-                        editor_should_blink(
-                            &snapshot.editor,
-                            i
+                        lcd_write_string(
+                            a->trigger_selector.items[
+                                a->trigger_selector.selected
+                            ]
                         );
+                    }
 
-                        if (blink && blink_state)
-                            lcd_write_char(' ');
-                        else
-                            lcd_write_char('0' + digit);
+                    // =========================================
+                    // OUTPUT MODE
+                    // =========================================
+
+                    else if (
+                        snapshot.adv_cursor ==
+                        ADV_ITEM_OUTPUT_MODE
+                    )
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("OUTPUT MODE");
+
+                        lcd_set_cursor(1, 0);
+
+                        lcd_write_string(
+                            a->output_selector.items[
+                                a->output_selector.selected
+                            ]
+                        );
+                    }
+
+                    // =========================================
+                    // TRIGGER DELAY
+                    // =========================================
+
+                    else if (
+                        snapshot.adv_cursor ==
+                        ADV_ITEM_TRIGGER_DELAY
+                    )
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("TRIG DELAY MS");
+
+                        for (int i = 0; i < 6; i++)
+                        {
+                            uint8_t digit =
+                                editor_get_digit(
+                                    &snapshot.editor,
+                                    i
+                                );
+
+                            uint8_t col =
+                                EDITOR_COL_START + i;
+
+                            lcd_set_cursor(1, col);
+
+                            bool blink =
+                                snapshot.adv_editing &&
+                                editor_should_blink(
+                                    &snapshot.editor,
+                                    i
+                                );
+
+                            if (blink && blink_state)
+                                lcd_write_char(' ');
+                            else
+                                lcd_write_char('0' + digit);
+                        }
+                    }
+
+                    // =========================================
+                    // OUTPUT DELAY
+                    // =========================================
+
+                    else if (
+                        snapshot.adv_cursor ==
+                        ADV_ITEM_OUTPUT_DELAY
+                    )
+                    {
+                        lcd_set_cursor(0, 0);
+                        lcd_write_string("OUT DELAY MS");
+
+                        for (int i = 0; i < 6; i++)
+                        {
+                            uint8_t digit =
+                                editor_get_digit(
+                                    &snapshot.editor,
+                                    i
+                                );
+
+                            uint8_t col =
+                                EDITOR_COL_START + i;
+
+                            lcd_set_cursor(1, col);
+
+                            bool blink =
+                                snapshot.adv_editing &&
+                                editor_should_blink(
+                                    &snapshot.editor,
+                                    i
+                                );
+
+                            if (blink && blink_state)
+                                lcd_write_char(' ');
+                            else
+                                lcd_write_char('0' + digit);
+                        }
                     }
                 }
 
-                // =========================
-                // OUTPUT DELAY
-                // =========================
+                // =====================================================
+                // NORMAL UI
+                // =====================================================
 
-                else if (
-                    snapshot.adv_cursor ==
-                    ADV_ITEM_OUTPUT_DELAY
-                )
+                else
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("OUT DELAY MS");
+
+                    lcd_write_string("A");
+                    lcd_write_char('1' + snapshot.current_alarm);
+                    lcd_write_string(":");
+
+                    switch (a->mode)
+                    {
+                        case ALARM_ATAS:
+                            lcd_write_string("ATAS ");
+                            break;
+
+                        case ALARM_BAWAH:
+                            lcd_write_string("BAWAH");
+                            break;
+
+                        case ALARM_DALAM:
+                            lcd_write_string("DALAM");
+                            break;
+
+                        case ALARM_LUAR:
+                            lcd_write_string("LUAR ");
+                            break;
+
+                        default:
+                            lcd_write_string("-----");
+                            break;
+                    }
 
                     for (int i = 0; i < 6; i++)
                     {
@@ -427,7 +419,10 @@ void lcd_task(void *pv)
                         bool blink =
                         (
                             snapshot.ui_state ==
-                            ALARM_UI_EDIT_OUTPUT_DELAY
+                            ALARM_UI_EDIT_VALUE1 ||
+
+                            snapshot.ui_state ==
+                            ALARM_UI_EDIT_VALUE2
                         )
                         &&
                         editor_should_blink(
@@ -443,6 +438,8 @@ void lcd_task(void *pv)
                 }
             }
             break;
+
+            
 
             case APP_CALIB_TARE:
                 lcd_set_cursor(0, 0);
