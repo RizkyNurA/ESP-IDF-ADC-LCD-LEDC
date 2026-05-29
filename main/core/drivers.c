@@ -109,121 +109,232 @@ void lcd_task(void *pv)
     uint8_t blink_counter = 0;
 
     static int32_t last_total = -1;
-    static app_screen_t last_screen = APP_LOADING;
+    static app_screen_t last_screen =
+        APP_LOADING;
 
     while (1)
     {
+        // =====================================
+        // BLINK TIMER
+        // =====================================
+
         blink_counter++;
-        if (blink_counter > BLINK_THRESHOLD) {
+
+        if (
+            blink_counter >= 10
+        )
+        {
             blink_counter = 0;
-            blink_state = !blink_state;
+
+            blink_state =
+                !blink_state;
         }
+
+        // =====================================
+        // SNAPSHOT
+        // =====================================
 
         app_state_t snapshot;
 
-        xSemaphoreTake(app_mutex, portMAX_DELAY);
+        xSemaphoreTake(
+            app_mutex,
+            portMAX_DELAY
+        );
+
         alarm_update(&app);
+
         app_update(&app);
+
         snapshot = app;
+
         xSemaphoreGive(app_mutex);
 
-        // =========================
-        // LOADING SCREEN
-        // =========================
+        // =====================================
+        // LOADING
+        // =====================================
+
         if (!snapshot.system_ready)
         {
-            if (last_screen != APP_LOADING)
+            if (
+                last_screen !=
+                APP_LOADING
+            )
             {
                 lcd_clear();
+
                 lcd_set_cursor(0, 0);
-                lcd_write_string("Loading...");
-                last_screen = APP_LOADING;
+
+                lcd_write_string(
+                    "Loading..."
+                );
+
+                last_screen =
+                    APP_LOADING;
             }
 
-            vTaskDelay(pdMS_TO_TICKS(100));
+            vTaskDelay(
+                pdMS_TO_TICKS(100)
+            );
+
             continue;
         }
 
-        // =========================
-        // CLEAR HANYA SAAT GANTI SCREEN
-        // =========================
-        if (snapshot.screen != last_screen)
+        // =====================================
+        // CLEAR ON SCREEN CHANGE
+        // =====================================
+
+        if (
+            snapshot.screen !=
+            last_screen
+        )
         {
             lcd_clear();
-            last_screen = snapshot.screen;
-            last_total = -1; // force refresh
+
+            last_screen =
+                snapshot.screen;
+
+            last_total = -1;
         }
 
-        // =========================
+        // =====================================
         // RENDER
-        // =========================
+        // =====================================
+
         switch (snapshot.screen)
         {
+            // =================================
+            // IDLE
+            // =================================
+
             case APP_IDLE:
             {
-                int32_t total = get_total_weight(&snapshot);
+                int32_t total =
+                    get_total_weight(
+                        &snapshot
+                    );
 
-                // update hanya jika berubah
-                if (total != last_total)
+                if (
+                    total !=
+                    last_total
+                )
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("TOTAL:      ");
+
+                    lcd_write_string(
+                        "TOTAL:"
+                    );
 
                     lcd_set_cursor(1, 0);
-                    lcd_write_float(total / 1000.0f, 2);
-                    lcd_write_string("      "); // padding
 
-                    last_total = total;
+                    lcd_write_float(
+                        total / 1000.0f,
+                        2
+                    );
+
+                    lcd_write_string(
+                        "      "
+                    );
+
+                    last_total =
+                        total;
                 }
             }
             break;
 
+            // =================================
+            // MONITOR
+            // =================================
+
             case APP_MONITOR:
             {
-                int total = CONFIG_NUM_LOADCELL;
-                // Row 0
+                int total =
+                    CONFIG_NUM_LOADCELL;
+
                 if (total >= 1)
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("L0:");
-                    lcd_write_float(snapshot.lc[0].weight / 1000.0f, 2);
+
+                    lcd_write_string(
+                        "L0:"
+                    );
+
+                    lcd_write_float(
+                        snapshot.lc[0].weight /
+                        1000.0f,
+                        2
+                    );
                 }
 
                 if (total >= 3)
                 {
                     lcd_set_cursor(0, 8);
-                    lcd_write_string("L2:");
-                    lcd_write_float(snapshot.lc[2].weight / 1000.0f, 2);
+
+                    lcd_write_string(
+                        "L2:"
+                    );
+
+                    lcd_write_float(
+                        snapshot.lc[2].weight /
+                        1000.0f,
+                        2
+                    );
                 }
 
-                // Row 1
                 if (total >= 2)
                 {
                     lcd_set_cursor(1, 0);
-                    lcd_write_string("L1:");
-                    lcd_write_float(snapshot.lc[1].weight / 1000.0f, 2);
+
+                    lcd_write_string(
+                        "L1:"
+                    );
+
+                    lcd_write_float(
+                        snapshot.lc[1].weight /
+                        1000.0f,
+                        2
+                    );
                 }
 
                 if (total >= 4)
                 {
                     lcd_set_cursor(1, 8);
-                    lcd_write_string("L3:");
-                    lcd_write_float(snapshot.lc[3].weight / 1000.0f, 2);
-                }
 
-                lcd_set_cursor(0, 6); lcd_write_string("  ");
-                lcd_set_cursor(0, 14); lcd_write_string("  ");
-                lcd_set_cursor(1, 6); lcd_write_string("  ");
-                lcd_set_cursor(1, 14); lcd_write_string("  ");
+                    lcd_write_string(
+                        "L3:"
+                    );
+
+                    lcd_write_float(
+                        snapshot.lc[3].weight /
+                        1000.0f,
+                        2
+                    );
+                }
             }
             break;
 
+            // =================================
+            // MENU
+            // =================================
+
             case APP_MENU:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("MENU        ");
+
+                lcd_write_string(
+                    "MENU            "
+                );
 
                 lcd_set_cursor(1, 0);
-                break;
+
+                lcd_write_string(
+                    "< > SEL"
+                );
+            }
+            break;
+
+            // =================================
+            // CONFIG ALARM
+            // =================================
 
             case APP_CONFIG_ALARM:
             {
@@ -232,76 +343,107 @@ void lcd_task(void *pv)
                         snapshot.current_alarm
                     ];
 
-                // =====================================================
-                // ADVANCED UI
-                // =====================================================
+                // =============================
+                // ADVANCED CONFIG
+                // =============================
 
-                if (
+                if
+                (
                     snapshot.ui_state ==
-                    ALARM_UI_ADVANCED
+                    ALARM_UI_ADVANCED ||
+
+                    snapshot.ui_state ==
+                    ALARM_UI_EDIT_TRIGGER_DELAY ||
+
+                    snapshot.ui_state ==
+                    ALARM_UI_EDIT_OUTPUT_DELAY
                 )
                 {
                     lcd_set_cursor(0, 0);
-                    lcd_write_string("                ");
+                    lcd_write_string(
+                        "                "
+                    );
 
                     lcd_set_cursor(1, 0);
-                    lcd_write_string("                ");
+                    lcd_write_string(
+                        "                "
+                    );
 
-                    // =========================================
+                    // =========================
                     // TRIGGER MODE
-                    // =========================================
+                    // =========================
 
-                    if (
+                    if
+                    (
                         snapshot.adv_cursor ==
                         ADV_ITEM_TRIGGER_MODE
                     )
                     {
                         lcd_set_cursor(0, 0);
-                        lcd_write_string("TRIGGER MODE");
+
+                        lcd_write_string(
+                            "TRIGGER MODE"
+                        );
 
                         lcd_set_cursor(1, 0);
 
                         lcd_write_string(
-                            a->trigger_selector.items[
-                                a->trigger_selector.selected
+                            a->trigger_selector
+                            .items[
+                                a->trigger_selector
+                                .selected
                             ]
                         );
                     }
 
-                    // =========================================
+                    // =========================
                     // OUTPUT MODE
-                    // =========================================
+                    // =========================
 
-                    else if (
+                    else if
+                    (
                         snapshot.adv_cursor ==
                         ADV_ITEM_OUTPUT_MODE
                     )
                     {
                         lcd_set_cursor(0, 0);
-                        lcd_write_string("OUTPUT MODE");
+
+                        lcd_write_string(
+                            "OUTPUT MODE"
+                        );
 
                         lcd_set_cursor(1, 0);
 
                         lcd_write_string(
-                            a->output_selector.items[
-                                a->output_selector.selected
+                            a->output_selector
+                            .items[
+                                a->output_selector
+                                .selected
                             ]
                         );
                     }
 
-                    // =========================================
+                    // =========================
                     // TRIGGER DELAY
-                    // =========================================
+                    // =========================
 
-                    else if (
+                    else if
+                    (
                         snapshot.adv_cursor ==
                         ADV_ITEM_TRIGGER_DELAY
                     )
                     {
                         lcd_set_cursor(0, 0);
-                        lcd_write_string("TRIG DELAY MS");
 
-                        for (int i = 0; i < 6; i++)
+                        lcd_write_string(
+                            "TRIG DELAY MS"
+                        );
+
+                        for (
+                            int i = 0;
+                            i < 6;
+                            i++
+                        )
                         {
                             uint8_t digit =
                                 editor_get_digit(
@@ -310,37 +452,62 @@ void lcd_task(void *pv)
                                 );
 
                             uint8_t col =
-                                EDITOR_COL_START + i;
+                                EDITOR_COL_START +
+                                i;
 
-                            lcd_set_cursor(1, col);
+                            lcd_set_cursor(
+                                1,
+                                col
+                            );
 
                             bool blink =
-                                snapshot.adv_editing &&
-                                editor_should_blink(
-                                    &snapshot.editor,
-                                    i
-                                );
+                            (
+                                snapshot.ui_state ==
+                                ALARM_UI_EDIT_TRIGGER_DELAY
+                            )
+                            &&
+                            editor_should_blink(
+                                &snapshot.editor,
+                                i
+                            );
 
-                            if (blink && blink_state)
+                            if (
+                                blink &&
+                                blink_state
+                            )
+                            {
                                 lcd_write_char(' ');
+                            }
                             else
-                                lcd_write_char('0' + digit);
+                            {
+                                lcd_write_char(
+                                    '0' + digit
+                                );
+                            }
                         }
                     }
 
-                    // =========================================
+                    // =========================
                     // OUTPUT DELAY
-                    // =========================================
+                    // =========================
 
-                    else if (
+                    else if
+                    (
                         snapshot.adv_cursor ==
                         ADV_ITEM_OUTPUT_DELAY
                     )
                     {
                         lcd_set_cursor(0, 0);
-                        lcd_write_string("OUT DELAY MS");
 
-                        for (int i = 0; i < 6; i++)
+                        lcd_write_string(
+                            "OUT DELAY MS"
+                        );
+
+                        for (
+                            int i = 0;
+                            i < 6;
+                            i++
+                        )
                         {
                             uint8_t digit =
                                 editor_get_digit(
@@ -349,61 +516,97 @@ void lcd_task(void *pv)
                                 );
 
                             uint8_t col =
-                                EDITOR_COL_START + i;
+                                EDITOR_COL_START +
+                                i;
 
-                            lcd_set_cursor(1, col);
+                            lcd_set_cursor(
+                                1,
+                                col
+                            );
 
                             bool blink =
-                                snapshot.adv_editing &&
-                                editor_should_blink(
-                                    &snapshot.editor,
-                                    i
-                                );
+                            (
+                                snapshot.ui_state ==
+                                ALARM_UI_EDIT_OUTPUT_DELAY
+                            )
+                            &&
+                            editor_should_blink(
+                                &snapshot.editor,
+                                i
+                            );
 
-                            if (blink && blink_state)
+                            if (
+                                blink &&
+                                blink_state
+                            )
+                            {
                                 lcd_write_char(' ');
+                            }
                             else
-                                lcd_write_char('0' + digit);
+                            {
+                                lcd_write_char(
+                                    '0' + digit
+                                );
+                            }
                         }
                     }
                 }
 
-                // =====================================================
-                // NORMAL UI
-                // =====================================================
+                // =============================
+                // NORMAL CONFIG
+                // =============================
 
                 else
                 {
                     lcd_set_cursor(0, 0);
 
                     lcd_write_string("A");
-                    lcd_write_char('1' + snapshot.current_alarm);
+
+                    lcd_write_char(
+                        '1' +
+                        snapshot.current_alarm
+                    );
+
                     lcd_write_string(":");
 
                     switch (a->mode)
                     {
                         case ALARM_ATAS:
-                            lcd_write_string("ATAS ");
+                            lcd_write_string(
+                                "ATAS "
+                            );
                             break;
 
                         case ALARM_BAWAH:
-                            lcd_write_string("BAWAH");
+                            lcd_write_string(
+                                "BAWAH"
+                            );
                             break;
 
                         case ALARM_DALAM:
-                            lcd_write_string("DALAM");
+                            lcd_write_string(
+                                "DALAM"
+                            );
                             break;
 
                         case ALARM_LUAR:
-                            lcd_write_string("LUAR ");
+                            lcd_write_string(
+                                "LUAR "
+                            );
                             break;
 
                         default:
-                            lcd_write_string("-----");
+                            lcd_write_string(
+                                "-----"
+                            );
                             break;
                     }
 
-                    for (int i = 0; i < 6; i++)
+                    for (
+                        int i = 0;
+                        i < 6;
+                        i++
+                    )
                     {
                         uint8_t digit =
                             editor_get_digit(
@@ -412,9 +615,13 @@ void lcd_task(void *pv)
                             );
 
                         uint8_t col =
-                            EDITOR_COL_START + i;
+                            EDITOR_COL_START +
+                            i;
 
-                        lcd_set_cursor(1, col);
+                        lcd_set_cursor(
+                            1,
+                            col
+                        );
 
                         bool blink =
                         (
@@ -430,76 +637,167 @@ void lcd_task(void *pv)
                             i
                         );
 
-                        if (blink && blink_state)
+                        if (
+                            blink &&
+                            blink_state
+                        )
+                        {
                             lcd_write_char(' ');
+                        }
                         else
-                            lcd_write_char('0' + digit);
+                        {
+                            lcd_write_char(
+                                '0' + digit
+                            );
+                        }
                     }
                 }
             }
             break;
 
-            
+            // =================================
+            // CALIB TARE
+            // =================================
 
             case APP_CALIB_TARE:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("TARE        ");
+
+                lcd_write_string(
+                    "TARE"
+                );
 
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Hold=OK     ");
-                break;
+
+                lcd_write_string(
+                    "Hold=OK"
+                );
+            }
+            break;
+
+            // =================================
+            // CALIB TARE WAIT
+            // =================================
 
             case APP_CALIB_TARE_WAIT:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("TARE...     ");
+
+                lcd_write_string(
+                    "TARE..."
+                );
 
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Wait        ");
-                if (blink_state) lcd_write_string("...");
-                break;
+
+                lcd_write_string(
+                    "Wait"
+                );
+            }
+            break;
+
+            // =================================
+            // CALIB INPUT
+            // =================================
 
             case APP_CALIB_INPUT:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("CAL:        ");
 
-                for (int i = 0; i < 6; i++)
+                lcd_write_string(
+                    "CAL:"
+                );
+
+                for (
+                    int i = 0;
+                    i < 6;
+                    i++
+                )
                 {
-                    uint8_t digit = editor_get_digit(&snapshot.editor, i);
-                    uint8_t col = EDITOR_COL_START + i;
+                    uint8_t digit =
+                        editor_get_digit(
+                            &snapshot.editor,
+                            i
+                        );
 
-                    lcd_set_cursor(EDITOR_ROW, col);
+                    uint8_t col =
+                        EDITOR_COL_START +
+                        i;
 
-                    bool blink = editor_should_blink(&snapshot.editor, i);
+                    lcd_set_cursor(
+                        1,
+                        col
+                    );
 
-                    if (blink && blink_state)
+                    bool blink =
+                        editor_should_blink(
+                            &snapshot.editor,
+                            i
+                        );
+
+                    if (
+                        blink &&
+                        blink_state
+                    )
+                    {
                         lcd_write_char(' ');
+                    }
                     else
-                        lcd_write_char('0' + digit);
+                    {
+                        lcd_write_char(
+                            '0' + digit
+                        );
+                    }
                 }
-                break;
+            }
+            break;
+
+            // =================================
+            // CALIB WAIT
+            // =================================
 
             case APP_CALIB_INPUT_WAIT:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("CAL...      ");
+
+                lcd_write_string(
+                    "CAL..."
+                );
 
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Sampling    ");
-                if (blink_state) lcd_write_string("...");
-                break;
+
+                lcd_write_string(
+                    "Sampling"
+                );
+            }
+            break;
+
+            // =================================
+            // DONE
+            // =================================
 
             case APP_CALIB_DONE:
+            {
                 lcd_set_cursor(0, 0);
-                lcd_write_string("DONE        ");
+
+                lcd_write_string(
+                    "DONE"
+                );
 
                 lcd_set_cursor(1, 0);
-                lcd_write_string("Hold=Exit   ");
-                break;
+
+                lcd_write_string(
+                    "Hold=Exit"
+                );
+            }
+            break;
 
             default:
                 break;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(
+            pdMS_TO_TICKS(50)
+        );
     }
 }
 
