@@ -17,6 +17,12 @@
 #include "app_logic.h"
 static app_screen_t last_screen = APP_LOADING;
 
+static uint8_t last_adv_cursor = 255;
+
+static alarm_ui_state_t
+    last_ui_state =
+    (alarm_ui_state_t)-1;
+
 void GPIO_Initialation(gpio_num_t left_button, 
                         gpio_num_t center_button,
                         gpio_num_t right_button)
@@ -69,39 +75,6 @@ void app_task(void *pv)
         }
     }
 }
-
-// void adc_task(void *pv)
-// {
-//     adc_unit_handle_custom_t adc1;
-//     adc_channel_handle_custom_t ch0;
-
-//     adc_unit_init(&adc1, ADC_UNIT_1);
-//     adc_channel_init(&adc1, &ch0, pin_potensio, ADC_ATTEN_DB_12);
-
-//     while (1)
-//     {
-//         int vp = adc_read_raw(&adc1, &ch0);
-//         uint32_t duty_local = (vp * 8191) / 4095;
-
-//         xSemaphoreTake(app_mutex, portMAX_DELAY);
-//         app.duty = duty_local;
-//         xSemaphoreGive(app_mutex);
-
-//         ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, duty_local);
-//         ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
-
-//         vTaskDelay(pdMS_TO_TICKS(100));
-//     }
-// }
-
-// void led_task(void *pv)
-// {
-//     while (1)
-//     {
-//         gpio_set_level(pin_led_2, toggle_state);
-//         vTaskDelay(pdMS_TO_TICKS(10));
-//     }
-// }
 
 void lcd_task(void *pv)
 {
@@ -199,6 +172,48 @@ void lcd_task(void *pv)
         // =====================================
         // RENDER
         // =====================================
+
+        // =====================================
+        // REFRESH ADVANCED PAGE
+        // =====================================
+
+        if
+        (
+            snapshot.screen ==
+            APP_CONFIG_ALARM
+        )
+        {
+            bool adv_changed = false;
+
+            if
+            (
+                snapshot.adv_cursor !=
+                last_adv_cursor
+            )
+            {
+                adv_changed = true;
+            }
+
+            if
+            (
+                snapshot.ui_state !=
+                last_ui_state
+            )
+            {
+                adv_changed = true;
+            }
+
+            if (adv_changed)
+            {
+                lcd_clear();
+
+                last_adv_cursor =
+                    snapshot.adv_cursor;
+
+                last_ui_state =
+                    snapshot.ui_state;
+            }
+        }
 
         switch (snapshot.screen)
         {
@@ -359,15 +374,7 @@ void lcd_task(void *pv)
                     ALARM_UI_EDIT_OUTPUT_DELAY
                 )
                 {
-                    lcd_set_cursor(0, 0);
-                    lcd_write_string(
-                        "                "
-                    );
-
-                    lcd_set_cursor(1, 0);
-                    lcd_write_string(
-                        "                "
-                    );
+                    
 
                     // =========================
                     // TRIGGER MODE
