@@ -22,13 +22,21 @@ typedef enum {
     APP_CALIB_DONE
 } app_screen_t;
 
+// typedef enum
+// {
+//     ADV_FOCUS_TRIGGER,
+//     ADV_FOCUS_OUTPUT
+
+// } alarm_adv_focus_t;
+
 typedef enum
 {
-    ADV_FOCUS_TRIGGER,
-    ADV_FOCUS_OUTPUT
+    ADV_ITEM_TRIGGER_MODE,
+    ADV_ITEM_OUTPUT_MODE,
+    ADV_ITEM_TRIGGER_DELAY,
+    ADV_ITEM_OUTPUT_DELAY
 
-} alarm_adv_focus_t;
-
+} alarm_adv_item_t;
 typedef enum
 {
     ALARM_ATAS,
@@ -43,8 +51,12 @@ typedef enum
     ALARM_UI_SELECT,
     ALARM_UI_EDIT_VALUE1,
     ALARM_UI_EDIT_VALUE2,
-    ALARM_UI_EDIT_MODE,
-    ALARM_UI_EDIT_ENABLE
+    // ALARM_UI_EDIT_MODE,
+    // ALARM_UI_EDIT_ENABLE,
+
+    ALARM_UI_EDIT_TRIGGER_DELAY,
+    ALARM_UI_EDIT_OUTPUT_DELAY,
+    ALARM_UI_ADVANCED
 
 } alarm_ui_state_t;
 
@@ -82,17 +94,29 @@ typedef enum
 
 typedef struct
 {
+    // =========================
+    // BASIC
+    // =========================
+
     bool enabled;
 
     alarm_mode_t mode;
-
-    selector_t selector;
 
     int32_t threshold_low;
     int32_t threshold_high;
 
     // =========================
-    // MODE
+    // UI SELECTOR
+    // =========================
+
+    selector_t selector;
+
+    selector_t trigger_selector;
+
+    selector_t output_selector;
+
+    // =========================
+    // ADVANCED MODE
     // =========================
 
     trigger_mode_t trigger_mode;
@@ -100,7 +124,7 @@ typedef struct
     output_mode_t output_mode;
 
     // =========================
-    // CONFIG
+    // DELAY CONFIG
     // =========================
 
     uint32_t trigger_delay_ms;
@@ -115,18 +139,21 @@ typedef struct
 
     bool condition_prev;
 
-    // trigger timer
+    // =========================
+    // TRIGGER TIMER
+    // =========================
+
     bool trigger_timer_running;
 
     TickType_t trigger_timer_start;
 
-    // output timer
+    // =========================
+    // OUTPUT TIMER
+    // =========================
+
     bool output_timer_running;
 
     TickType_t output_timer_start;
-
-    selector_t trigger_selector;
-    selector_t output_selector;
 
 } alarm_t;
 
@@ -143,7 +170,9 @@ typedef struct {
     alarm_ui_state_t ui_state;
     uint8_t current_alarm;
     selector_t menu_selector;
-    alarm_adv_focus_t adv_focus;
+    //alarm_adv_focus_t adv_focus;
+    alarm_adv_item_t adv_cursor;
+    bool adv_editing;
 
 } app_state_t;
 typedef struct {

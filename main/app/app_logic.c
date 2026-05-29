@@ -265,9 +265,9 @@ static void handle_alarm_config(
             app->current_alarm
         ];
 
-    // =========================
-    // MODE SELECT
-    // =========================
+    // =====================================================
+    // NORMAL MODE
+    // =====================================================
 
     if (
         app->ui_state ==
@@ -284,7 +284,28 @@ static void handle_alarm_config(
             a->selector.selected;
 
         // =========================
-        // ENTER EDIT LOW
+        // ENTER ADVANCED
+        // =========================
+
+        if (
+            evt ==
+            EVT_CENTER_VERY_LONG
+        )
+        {
+            app->ui_state =
+                ALARM_UI_ADVANCED;
+
+            app->adv_cursor =
+                ADV_ITEM_TRIGGER_MODE;
+
+            app->adv_editing =
+                false;
+
+            return;
+        }
+
+        // =========================
+        // EDIT LOW
         // =========================
 
         if (evt == EVT_RIGHT_LONG)
@@ -302,9 +323,9 @@ static void handle_alarm_config(
         }
     }
 
-    // =========================
+    // =====================================================
     // EDIT LOW
-    // =========================
+    // =====================================================
 
     else if (
         app->ui_state ==
@@ -316,14 +337,13 @@ static void handle_alarm_config(
             evt
         );
 
-        // realtime update
         a->threshold_low =
             editor_get_value(
                 &app->editor
             );
 
         // =========================
-        // BACK TO SELECT
+        // BACK
         // =========================
 
         if (evt == EVT_LEFT_LONG)
@@ -336,8 +356,7 @@ static void handle_alarm_config(
         }
 
         // =========================
-        // ENTER EDIT HIGH
-        // ONLY DALAM / LUAR
+        // NEXT HIGH
         // =========================
 
         else if (
@@ -361,9 +380,9 @@ static void handle_alarm_config(
         }
     }
 
-    // =========================
+    // =====================================================
     // EDIT HIGH
-    // =========================
+    // =====================================================
 
     else if (
         app->ui_state ==
@@ -375,14 +394,13 @@ static void handle_alarm_config(
             evt
         );
 
-        // realtime update
         a->threshold_high =
             editor_get_value(
                 &app->editor
             );
 
         // =========================
-        // BACK TO LOW
+        // BACK LOW
         // =========================
 
         if (evt == EVT_LEFT_LONG)
@@ -400,13 +418,186 @@ static void handle_alarm_config(
         }
     }
 
-    // =========================
+    // =====================================================
+    // ADVANCED MENU
+    // =====================================================
+
+    else if (
+        app->ui_state ==
+        ALARM_UI_ADVANCED
+    )
+    {
+        // =========================
+        // EXIT ADVANCED
+        // =========================
+
+        if (
+            evt ==
+            EVT_CENTER_VERY_LONG
+        )
+        {
+            app->ui_state =
+                ALARM_UI_SELECT;
+
+            app->adv_editing =
+                false;
+
+            return;
+        }
+
+        // =================================================
+        // CURSOR NAVIGATION
+        // =================================================
+
+        if (!app->adv_editing)
+        {
+            if (
+                evt == EVT_RIGHT_LONG &&
+                app->adv_cursor <
+                ADV_ITEM_OUTPUT_DELAY
+            )
+            {
+                app->adv_cursor++;
+            }
+
+            else if (
+                evt == EVT_LEFT_LONG &&
+                app->adv_cursor >
+                ADV_ITEM_TRIGGER_MODE
+            )
+            {
+                app->adv_cursor--;
+            }
+        }
+
+        // =================================================
+        // TOGGLE EDIT MODE
+        // =================================================
+
+        if (evt == EVT_CENTER_SHORT)
+        {
+            app->adv_editing =
+                !app->adv_editing;
+
+            // load value into editor
+            if (app->adv_editing)
+            {
+                switch(app->adv_cursor)
+                {
+                    case ADV_ITEM_TRIGGER_DELAY:
+
+                        editor_set_value(
+                            &app->editor,
+                            a->trigger_delay_ms
+                        );
+
+                        break;
+
+                    case ADV_ITEM_OUTPUT_DELAY:
+
+                        editor_set_value(
+                            &app->editor,
+                            a->output_delay_ms
+                        );
+
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            return;
+        }
+
+        // =================================================
+        // HANDLE EDIT
+        // =================================================
+
+        if (app->adv_editing)
+        {
+            switch(app->adv_cursor)
+            {
+                // =========================================
+                // TRIGGER MODE
+                // =========================================
+
+                case ADV_ITEM_TRIGGER_MODE:
+
+                    selector_handle_event(
+                        &a->trigger_selector,
+                        evt
+                    );
+
+                    a->trigger_mode =
+                        (trigger_mode_t)
+                        a->trigger_selector.selected;
+
+                    break;
+
+                // =========================================
+                // OUTPUT MODE
+                // =========================================
+
+                case ADV_ITEM_OUTPUT_MODE:
+
+                    selector_handle_event(
+                        &a->output_selector,
+                        evt
+                    );
+
+                    a->output_mode =
+                        (output_mode_t)
+                        a->output_selector.selected;
+
+                    break;
+
+                // =========================================
+                // TRIGGER DELAY
+                // =========================================
+
+                case ADV_ITEM_TRIGGER_DELAY:
+
+                    editor_handle_event(
+                        &app->editor,
+                        evt
+                    );
+
+                    a->trigger_delay_ms =
+                        editor_get_value(
+                            &app->editor
+                        );
+
+                    break;
+
+                // =========================================
+                // OUTPUT DELAY
+                // =========================================
+
+                case ADV_ITEM_OUTPUT_DELAY:
+
+                    editor_handle_event(
+                        &app->editor,
+                        evt
+                    );
+
+                    a->output_delay_ms =
+                        editor_get_value(
+                            &app->editor
+                        );
+
+                    break;
+            }
+        }
+    }
+
+    // =====================================================
     // SAVE + NEXT
-    // =========================
+    // =====================================================
 
     if (evt == EVT_CENTER_LONG)
     {
-        // safety normalize
+        // normalize
         if (
             a->threshold_low >
             a->threshold_high
@@ -630,7 +821,6 @@ void app_handle_event(
             }
 
             break;
-
         case APP_CONFIG_ALARM:
 
             handle_alarm_config(
@@ -638,10 +828,20 @@ void app_handle_event(
                 evt
             );
 
+            // =========================
+            // ENTER ADVANCED
+            // =========================
+
             if (evt == EVT_CENTER_VERY_LONG)
             {
-                app->screen = APP_CONFIG_ALARM_ADVANCED;
-                app->adv_focus = ADV_FOCUS_TRIGGER;
+                app->screen =
+                    APP_CONFIG_ALARM_ADVANCED;
+
+                app->ui_state =
+                    ALARM_UI_ADVANCED;
+
+                app->adv_cursor =
+                    ADV_ITEM_TRIGGER_MODE;
             }
 
             break;
@@ -652,9 +852,67 @@ void app_handle_event(
                 &app->alarm[
                     app->current_alarm
                 ];
+            
+            // =========================
+// EDIT TRIGGER DELAY
+// =========================
+
+            if (
+                app->ui_state ==
+                ALARM_UI_EDIT_TRIGGER_DELAY
+            )
+            {
+                editor_handle_event(
+                    &app->editor,
+                    evt
+                );
+
+                a->trigger_delay_ms =
+                    editor_get_value(
+                        &app->editor
+                    );
+
+                // exit edit
+                if (evt == EVT_CENTER_LONG)
+                {
+                    app->ui_state =
+                        ALARM_UI_ADVANCED;
+                }
+
+                break;
+            }
 
             // =========================
-            // EXIT
+            // EDIT OUTPUT DELAY
+            // =========================
+
+            if (
+                app->ui_state ==
+                ALARM_UI_EDIT_OUTPUT_DELAY
+            )
+            {
+                editor_handle_event(
+                    &app->editor,
+                    evt
+                );
+
+                a->output_delay_ms =
+                    editor_get_value(
+                        &app->editor
+                    );
+
+                // exit edit
+                if (evt == EVT_CENTER_LONG)
+                {
+                    app->ui_state =
+                        ALARM_UI_ADVANCED;
+                }
+
+                break;
+            }
+
+            // =========================
+            // EXIT ADVANCED
             // =========================
 
             if (evt == EVT_CENTER_VERY_LONG)
@@ -662,32 +920,42 @@ void app_handle_event(
                 app->screen =
                     APP_CONFIG_ALARM;
 
+                app->ui_state =
+                    ALARM_UI_SELECT;
+
                 break;
             }
 
             // =========================
-            // PINDAH FOCUS
+            // MOVE CURSOR
             // =========================
 
             if (evt == EVT_LEFT_LONG)
             {
-                app->adv_focus =
-                    ADV_FOCUS_TRIGGER;
+                if (app->adv_cursor > 0)
+                {
+                    app->adv_cursor--;
+                }
             }
 
             else if (evt == EVT_RIGHT_LONG)
             {
-                app->adv_focus =
-                    ADV_FOCUS_OUTPUT;
+                if (
+                    app->adv_cursor <
+                    ADV_ITEM_OUTPUT_DELAY
+                )
+                {
+                    app->adv_cursor++;
+                }
             }
 
             // =========================
-            // HANDLE SELECTOR
+            // TRIGGER MODE
             // =========================
 
             if (
-                app->adv_focus ==
-                ADV_FOCUS_TRIGGER
+                app->adv_cursor ==
+                ADV_ITEM_TRIGGER_MODE
             )
             {
                 selector_handle_event(
@@ -696,9 +964,18 @@ void app_handle_event(
                 );
 
                 a->trigger_mode =
+                    (trigger_mode_t)
                     a->trigger_selector.selected;
             }
-            else
+
+            // =========================
+            // OUTPUT MODE
+            // =========================
+
+            else if (
+                app->adv_cursor ==
+                ADV_ITEM_OUTPUT_MODE
+            )
             {
                 selector_handle_event(
                     &a->output_selector,
@@ -706,7 +983,58 @@ void app_handle_event(
                 );
 
                 a->output_mode =
+                    (output_mode_t)
                     a->output_selector.selected;
+            }
+
+            // =========================
+            // EDIT TRIGGER DELAY
+            // =========================
+
+            else if (
+                app->adv_cursor ==
+                ADV_ITEM_TRIGGER_DELAY
+            )
+            {
+                // enter editor
+                if (
+                    evt ==
+                    EVT_CENTER_LONG
+                )
+                {
+                    app->ui_state =
+                        ALARM_UI_EDIT_TRIGGER_DELAY;
+
+                    editor_set_value(
+                        &app->editor,
+                        a->trigger_delay_ms
+                    );
+                }
+            }
+
+            // =========================
+            // EDIT OUTPUT DELAY
+            // =========================
+
+            else if (
+                app->adv_cursor ==
+                ADV_ITEM_OUTPUT_DELAY
+            )
+            {
+                // enter editor
+                if (
+                    evt ==
+                    EVT_CENTER_LONG
+                )
+                {
+                    app->ui_state =
+                        ALARM_UI_EDIT_OUTPUT_DELAY;
+
+                    editor_set_value(
+                        &app->editor,
+                        a->output_delay_ms
+                    );
+                }
             }
         }
         break;

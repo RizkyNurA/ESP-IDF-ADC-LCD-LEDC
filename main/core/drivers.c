@@ -307,57 +307,140 @@ void lcd_task(void *pv)
                         snapshot.current_alarm
                     ];
 
+                // clear
+                lcd_set_cursor(0, 0);
+                lcd_write_string("                ");
+
+                lcd_set_cursor(1, 0);
+                lcd_write_string("                ");
+
                 // =========================
                 // TRIGGER MODE
                 // =========================
 
-                lcd_set_cursor(0, 0);
-
                 if (
-                    snapshot.adv_focus ==
-                    ADV_FOCUS_TRIGGER
+                    snapshot.adv_cursor ==
+                    ADV_ITEM_TRIGGER_MODE
                 )
                 {
-                    lcd_write_char('>');
-                }
-                else
-                {
-                    lcd_write_char(' ');
-                }
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("TRIGGER MODE");
 
-                lcd_write_string(
-                    a->trigger_selector.items[
-                        a->trigger_selector.selected
-                    ]
-                );
+                    lcd_set_cursor(1, 0);
+
+                    lcd_write_string(
+                        a->trigger_selector.items[
+                            a->trigger_selector.selected
+                        ]
+                    );
+                }
 
                 // =========================
                 // OUTPUT MODE
                 // =========================
 
-                lcd_set_cursor(0, 7);
-
-                if (
-                    snapshot.adv_focus ==
-                    ADV_FOCUS_OUTPUT
+                else if (
+                    snapshot.adv_cursor ==
+                    ADV_ITEM_OUTPUT_MODE
                 )
                 {
-                    lcd_write_char('>');
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("OUTPUT MODE");
+
+                    lcd_set_cursor(1, 0);
+
+                    lcd_write_string(
+                        a->output_selector.items[
+                            a->output_selector.selected
+                        ]
+                    );
                 }
-                else
+
+                // =========================
+                // TRIGGER DELAY
+                // =========================
+
+                else if (
+                    snapshot.adv_cursor ==
+                    ADV_ITEM_TRIGGER_DELAY
+                )
                 {
-                    lcd_write_char(' ');
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("TRIG DELAY MS");
+
+                    for (int i = 0; i < 6; i++)
+                    {
+                        uint8_t digit =
+                            editor_get_digit(
+                                &snapshot.editor,
+                                i
+                            );
+
+                        uint8_t col =
+                            EDITOR_COL_START + i;
+
+                        lcd_set_cursor(1, col);
+
+                        bool blink =
+                        (
+                            snapshot.ui_state ==
+                            ALARM_UI_EDIT_TRIGGER_DELAY
+                        )
+                        &&
+                        editor_should_blink(
+                            &snapshot.editor,
+                            i
+                        );
+
+                        if (blink && blink_state)
+                            lcd_write_char(' ');
+                        else
+                            lcd_write_char('0' + digit);
+                    }
                 }
 
-                lcd_write_string(
-                    a->output_selector.items[
-                        a->output_selector.selected
-                    ]
-                );
+                // =========================
+                // OUTPUT DELAY
+                // =========================
 
-                // kosongkan row bawah
-                lcd_set_cursor(1, 0);
-                lcd_write_string("                ");
+                else if (
+                    snapshot.adv_cursor ==
+                    ADV_ITEM_OUTPUT_DELAY
+                )
+                {
+                    lcd_set_cursor(0, 0);
+                    lcd_write_string("OUT DELAY MS");
+
+                    for (int i = 0; i < 6; i++)
+                    {
+                        uint8_t digit =
+                            editor_get_digit(
+                                &snapshot.editor,
+                                i
+                            );
+
+                        uint8_t col =
+                            EDITOR_COL_START + i;
+
+                        lcd_set_cursor(1, col);
+
+                        bool blink =
+                        (
+                            snapshot.ui_state ==
+                            ALARM_UI_EDIT_OUTPUT_DELAY
+                        )
+                        &&
+                        editor_should_blink(
+                            &snapshot.editor,
+                            i
+                        );
+
+                        if (blink && blink_state)
+                            lcd_write_char(' ');
+                        else
+                            lcd_write_char('0' + digit);
+                    }
+                }
             }
             break;
 

@@ -103,6 +103,10 @@ void app_main(void)
         app.alarm[i].output_mode =
             OUTPUT_DIRECT;
 
+        app.alarm[i].trigger_delay_ms = 2000;
+
+        app.alarm[i].output_delay_ms = 2000;
+
         char key[16];
 
         // =========================
