@@ -23,6 +23,47 @@ static alarm_ui_state_t
     last_ui_state =
     (alarm_ui_state_t)-1;
 
+static void render_editor_digits(
+    editor_t *editor,
+    bool blink_state
+)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        uint8_t digit =
+            editor_get_digit(
+                editor,
+                i
+            );
+
+        uint8_t col =
+            EDITOR_COL_START + i;
+
+        lcd_set_cursor(1, col);
+
+        bool blink =
+            editor_should_blink(
+                editor,
+                i
+            );
+
+        if (
+            blink &&
+            blink_state
+        )
+        {
+            lcd_write_char(' ');
+        }
+        else
+        {
+            lcd_write_char(
+                '0' + digit
+            );
+        }
+    }
+}
+
+
 void GPIO_Initialation(gpio_num_t left_button, 
                         gpio_num_t center_button,
                         gpio_num_t right_button)
@@ -350,7 +391,6 @@ void lcd_task(void *pv)
             // =================================
             // CONFIG ALARM
             // =================================
-
             case APP_CONFIG_ALARM:
             {
                 alarm_t *a =
@@ -374,8 +414,6 @@ void lcd_task(void *pv)
                     ALARM_UI_EDIT_OUTPUT_DELAY
                 )
                 {
-                    
-
                     // =========================
                     // TRIGGER MODE
                     // =========================
@@ -389,10 +427,19 @@ void lcd_task(void *pv)
                         lcd_set_cursor(0, 0);
 
                         lcd_write_string(
-                            "TRIGGER MODE"
+                            "TRIGGER MODE  "
                         );
 
                         lcd_set_cursor(1, 0);
+
+                        if (blink_state)
+                        {
+                            lcd_write_char('>');
+                        }
+                        else
+                        {
+                            lcd_write_char(' ');
+                        }
 
                         lcd_write_string(
                             a->trigger_selector
@@ -416,10 +463,19 @@ void lcd_task(void *pv)
                         lcd_set_cursor(0, 0);
 
                         lcd_write_string(
-                            "OUTPUT MODE"
+                            "OUTPUT MODE   "
                         );
 
                         lcd_set_cursor(1, 0);
+
+                        if (blink_state)
+                        {
+                            lcd_write_char('>');
+                        }
+                        else
+                        {
+                            lcd_write_char(' ');
+                        }
 
                         lcd_write_string(
                             a->output_selector
@@ -443,55 +499,14 @@ void lcd_task(void *pv)
                         lcd_set_cursor(0, 0);
 
                         lcd_write_string(
-                            "TRIG DELAY MS"
+                            "TRIG DELAY MS "
                         );
 
-                        for (
-                            int i = 0;
-                            i < 6;
-                            i++
-                        )
-                        {
-                            uint8_t digit =
-                                editor_get_digit(
-                                    &snapshot.editor,
-                                    i
-                                );
+                    render_editor_digits(
+                        &snapshot.editor,
+                        blink_state
+                    );
 
-                            uint8_t col =
-                                EDITOR_COL_START +
-                                i;
-
-                            lcd_set_cursor(
-                                1,
-                                col
-                            );
-
-                            bool blink =
-                            (
-                                snapshot.ui_state ==
-                                ALARM_UI_EDIT_TRIGGER_DELAY
-                            )
-                            &&
-                            editor_should_blink(
-                                &snapshot.editor,
-                                i
-                            );
-
-                            if (
-                                blink &&
-                                blink_state
-                            )
-                            {
-                                lcd_write_char(' ');
-                            }
-                            else
-                            {
-                                lcd_write_char(
-                                    '0' + digit
-                                );
-                            }
-                        }
                     }
 
                     // =========================
@@ -507,55 +522,13 @@ void lcd_task(void *pv)
                         lcd_set_cursor(0, 0);
 
                         lcd_write_string(
-                            "OUT DELAY MS"
+                            "OUT DELAY MS  "
                         );
 
-                        for (
-                            int i = 0;
-                            i < 6;
-                            i++
-                        )
-                        {
-                            uint8_t digit =
-                                editor_get_digit(
-                                    &snapshot.editor,
-                                    i
-                                );
-
-                            uint8_t col =
-                                EDITOR_COL_START +
-                                i;
-
-                            lcd_set_cursor(
-                                1,
-                                col
-                            );
-
-                            bool blink =
-                            (
-                                snapshot.ui_state ==
-                                ALARM_UI_EDIT_OUTPUT_DELAY
-                            )
-                            &&
-                            editor_should_blink(
-                                &snapshot.editor,
-                                i
-                            );
-
-                            if (
-                                blink &&
-                                blink_state
-                            )
-                            {
-                                lcd_write_char(' ');
-                            }
-                            else
-                            {
-                                lcd_write_char(
-                                    '0' + digit
-                                );
-                            }
-                        }
+                        render_editor_digits(
+                            &snapshot.editor,
+                            blink_state
+                        );
                     }
                 }
 
@@ -575,6 +548,21 @@ void lcd_task(void *pv)
                     );
 
                     lcd_write_string(":");
+
+                    if (
+                        snapshot.ui_state ==
+                        ALARM_UI_SELECT
+                    )
+                    {
+                        if (blink_state)
+                        {
+                            lcd_write_char('>');
+                        }
+                        else
+                        {
+                            lcd_write_char(' ');
+                        }
+                    }
 
                     switch (a->mode)
                     {
@@ -609,55 +597,10 @@ void lcd_task(void *pv)
                             break;
                     }
 
-                    for (
-                        int i = 0;
-                        i < 6;
-                        i++
-                    )
-                    {
-                        uint8_t digit =
-                            editor_get_digit(
-                                &snapshot.editor,
-                                i
-                            );
-
-                        uint8_t col =
-                            EDITOR_COL_START +
-                            i;
-
-                        lcd_set_cursor(
-                            1,
-                            col
-                        );
-
-                        bool blink =
-                        (
-                            snapshot.ui_state ==
-                            ALARM_UI_EDIT_VALUE1 ||
-
-                            snapshot.ui_state ==
-                            ALARM_UI_EDIT_VALUE2
-                        )
-                        &&
-                        editor_should_blink(
-                            &snapshot.editor,
-                            i
-                        );
-
-                        if (
-                            blink &&
-                            blink_state
-                        )
-                        {
-                            lcd_write_char(' ');
-                        }
-                        else
-                        {
-                            lcd_write_char(
-                                '0' + digit
-                            );
-                        }
-                    }
+                    render_editor_digits(
+                        &snapshot.editor,
+                        blink_state
+                    );
                 }
             }
             break;

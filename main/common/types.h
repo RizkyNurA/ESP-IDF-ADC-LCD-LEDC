@@ -173,7 +173,7 @@ typedef struct {
     //alarm_adv_focus_t adv_focus;
     alarm_adv_item_t adv_cursor;
     bool adv_editing;
-
+    int32_t calib_known_value;
 } app_state_t;
 typedef struct {
     hx711_t *scale;

@@ -686,8 +686,7 @@ static void handle_alarm_config(
 
 void app_update(app_state_t *app)
 {
-    int32_t known =
-        editor_get_value(&app->editor);
+    int32_t known = app->calib_known_value;
 
     if (known < 0)
         known = 0;
@@ -746,6 +745,7 @@ void app_update(app_state_t *app)
             }
 
             app->screen = APP_CALIB_INPUT;
+            editor_set_value( &app->editor, app->calib_known_value );
         }
         break;
 
@@ -758,13 +758,7 @@ void app_update(app_state_t *app)
 
             char key[16];
 
-            int32_t calib_value =
-                editor_get_value(&app->editor);
-
-            nvs_save_i32(
-                "editor",
-                calib_value
-            );
+            nvs_save_i32( "editor", app->calib_known_value );
 
             for (int i = 0; i < CONFIG_NUM_LOADCELL; i++)
             {
@@ -874,6 +868,8 @@ void app_handle_event(
                 &app->editor,
                 evt
             );
+
+            app->calib_known_value = editor_get_value( &app->editor );
 
             if (evt == EVT_CENTER_LONG)
             {
@@ -1056,7 +1052,19 @@ void alarm_update(app_state_t *app)
             );
 
         a->output = output;
-    }
+
+        ESP_LOGI(
+            "ALARM",
+            "A%d cond=%d trig=%d out=%d trig_mode=%d out_mode=%d",
+            i,
+            condition,
+            trigger_valid,
+            output,
+            a->trigger_mode,
+            a->output_mode
+        );
+        }
+        
 
     gpio_set_level(
         pin_ch1_relay,
@@ -1072,4 +1080,5 @@ void alarm_update(app_state_t *app)
         pin_ch3_relay,
         app->alarm[2].output
     );
+    
 }

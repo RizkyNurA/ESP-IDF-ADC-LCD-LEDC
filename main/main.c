@@ -290,7 +290,8 @@ void app_main(void)
     lcd_init(pin_sda_lcd, pin_scl_lcd);
 
     /* ===================== APP INIT ===================== */
-    editor_init(&app.editor, nvs_load_i32("editor", 0));
+    app.calib_known_value = nvs_load_i32( "editor", 1000 ); 
+    editor_init( &app.editor, app.calib_known_value );
 
     app.screen = APP_IDLE;
     app.system_ready = true;
