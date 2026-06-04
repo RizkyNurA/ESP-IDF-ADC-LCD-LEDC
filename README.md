@@ -1,230 +1,143 @@
 # Smart Load Cell Indicator
 
-Smart Load Cell Indicator berbasis ESP32 untuk aplikasi penimbangan dan sortir produk. Sistem menggunakan beberapa load cell yang dibaca melalui HX711, menampilkan berat secara real-time pada LCD, serta menyediakan fitur alarm dengan berbagai mode trigger dan output untuk kebutuhan otomasi industri.
+Firmware Smart Load Cell Indicator berbasis ESP32 menggunakan HX711 dan LCD 16x2.
 
 ## Features
 
-* Multi Load Cell Support
+* Support hingga 4 load cell
+* HX711 ADC interface
+* Kalibrasi langsung dari LCD
+* Penyimpanan parameter menggunakan NVS
+* Monitoring berat realtime
+* 3 channel alarm output
+* Konfigurasi alarm melalui tombol dan LCD
 
-  * Mendukung hingga 4 load cell.
-  * Pembacaan berat individual dan total.
+### Trigger Mode
 
-* Calibration System
+* Level
+* Stable High
 
-  * Tare calibration.
-  * Known weight calibration.
-  * Penyimpanan parameter kalibrasi ke NVS.
+### Output Mode
 
-* Alarm System
-
-  * 3 channel alarm independen.
-  * Mode alarm:
-
-    * Above
-    * Below
-    * Inside Range
-    * Outside Range
-
-* Advanced Trigger
-
-  * Level Trigger
-  * Stable High Trigger
-
-* Advanced Output
-
-  * Direct Output
-  * ON Delay
-  * OFF Delay
-  * Timed Stop Sequence
-
-* Persistent Storage
-
-  * Semua konfigurasi tersimpan pada ESP32 NVS.
-  * Tetap tersimpan setelah power off.
-
-* FreeRTOS Based
-
-  * Task terpisah untuk:
-
-    * HX711 acquisition
-    * LCD update
-    * Button handling
-    * Alarm processing
+* Direct
+* ON Delay
+* OFF Delay
+* Timed Stop
 
 ---
 
-## Hardware
-
-### Main Controller
-
-* ESP32
-
-### Weight Measurement
-
-* HX711 Load Cell Amplifier
-* 1–4 Load Cell
-
-### User Interface
-
-* 16x2 LCD
-* 3 Push Buttons
-
-### Output
-
-* 3 Relay Outputs
-
----
-
-## Software Architecture
-
-### Tasks
-
-#### HX711 Task
-
-Bertugas membaca data load cell secara periodik dan memperbarui nilai raw ADC.
-
-#### LCD Task
-
-Menampilkan:
-
-* Total weight
-* Individual load cell weight
-* Calibration menu
-* Alarm configuration
-* Advanced alarm configuration
-
-#### Button Task
-
-Mendeteksi:
-
-* Short press
-* Long press
-* Very long press
-
-dan mengubahnya menjadi event aplikasi.
-
-#### Alarm Logic
-
-Proses alarm terdiri dari tiga tahap:
-
-```text
-Condition
-    ↓
-Trigger Logic
-    ↓
-Output Logic
-    ↓
-Relay Output
-```
-
----
-
-## Trigger Modes
-
-### Level
-
-Output mengikuti kondisi alarm secara langsung.
-
-### Stable High
-
-Kondisi alarm harus aktif selama waktu tertentu sebelum dianggap valid.
-
----
-
-## Output Modes
-
-### Direct
-
-Relay mengikuti trigger secara langsung.
-
-### ON Delay
-
-Relay aktif setelah trigger valid selama waktu tertentu.
-
-### OFF Delay
-
-Relay tetap aktif beberapa saat setelah trigger hilang.
-
-### Timed Stop
-
-Urutan kerja:
-
-```text
-Trigger Detected
-      ↓
-Relay ON (T1)
-      ↓
-Relay OFF (T2)
-      ↓
-Ready For Next Product
-```
-
-Mode ini cocok untuk aplikasi product sorting menggunakan actuator atau pneumatic gate.
-
----
-
-## Project Structure
+## Folder Structure
 
 ```text
 main/
 ├── app/
 │   ├── app_logic.c
 │   ├── app_logic.h
-│   ├── app_context.c
-│   └── app_context.h
+│   ├── editor.c
+│   ├── editor.h
+│   ├── selector.c
+│   └── selector.h
+│
+├── common/
+│   ├── types.h
+│   ├── utils.c
+│   └── utils.h
+│
+├── config/
+│   └── config.h
 │
 ├── core/
 │   ├── drivers.c
-│   ├── drivers.h
-│   ├── hx711_driver.c
-│   ├── hx711_driver.h
-│   └── lcd_driver.c
+│   └── drivers.h
 │
-├── ui/
-│   ├── editor.c
-│   ├── selector.c
-│   └── render.c
+├── drivers/
+│   ├── adc/
+│   ├── button/
+│   ├── hx711/
+│   ├── lcd/
+│   └── led/
 │
-├── storage/
-│   └── nvs_helper.c
+├── system/
+│   ├── app_context.c
+│   └── app_context.h
 │
-└── types.h
+├── main.c
+└── CMakeLists.txt
 ```
+
+---
+
+## Alarm Configuration
+
+Setiap alarm memiliki parameter:
+
+* Alarm Mode
+* Threshold Low
+* Threshold High
+* Trigger Mode
+* Output Mode
+* Trigger Delay
+* Output Delay
+* Output Delay 2
+
+### Alarm Mode
+
+* Atas
+* Bawah
+* Dalam Range
+* Luar Range
+
+### Trigger Mode
+
+#### Level
+
+Output mengikuti kondisi alarm secara langsung.
+
+#### Stable High
+
+Kondisi harus aktif selama waktu tertentu sebelum dianggap valid.
+
+### Output Mode
+
+#### Direct
+
+Output langsung mengikuti trigger.
+
+#### ON Delay
+
+Output aktif setelah delay tertentu.
+
+#### OFF Delay
+
+Output tetap aktif selama delay tertentu setelah trigger hilang.
+
+#### Timed Stop
+
+Output ON selama waktu T1 kemudian OFF selama waktu T2.
 
 ---
 
 ## Build
 
-ESP-IDF Required
-
 ```bash
 idf.py build
 ```
 
-Flash Firmware
+## Flash
 
 ```bash
-idf.py flash
-```
-
-Monitor Serial
-
-```bash
-idf.py monitor
+idf.py flash monitor
 ```
 
 ---
 
-## Applications
+## Hardware
 
-* Checkweigher
-* Weight Sorting Machine
-* Conveyor Sorting System
-* Packaging Line
-* Industrial Weight Monitoring
+* ESP32
+* HX711
+* Load Cell
+* LCD 16x2
+* Push Button
+* Relay Output
 
 ---
-
-## Author
-
-Developed using ESP32, FreeRTOS, and ESP-IDF.
