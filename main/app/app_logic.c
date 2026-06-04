@@ -1052,17 +1052,6 @@ void alarm_update(app_state_t *app)
             );
 
         a->output = output;
-
-        ESP_LOGI(
-            "ALARM",
-            "A%d cond=%d trig=%d out=%d trig_mode=%d out_mode=%d",
-            i,
-            condition,
-            trigger_valid,
-            output,
-            a->trigger_mode,
-            a->output_mode
-        );
         }
         
 
