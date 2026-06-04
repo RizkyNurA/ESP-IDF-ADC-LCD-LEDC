@@ -34,7 +34,9 @@ typedef enum
     ADV_ITEM_TRIGGER_MODE,
     ADV_ITEM_OUTPUT_MODE,
     ADV_ITEM_TRIGGER_DELAY,
-    ADV_ITEM_OUTPUT_DELAY
+    ADV_ITEM_OUTPUT_DELAY,
+    ADV_ITEM_OUTPUT_DELAY2,
+    ADV_ITEM_COUNT
 
 } alarm_adv_item_t;
 typedef enum
@@ -48,6 +50,14 @@ typedef enum
 
 typedef enum
 {
+    SEQ_IDLE,
+    SEQ_ON_PHASE,
+    SEQ_OFF_PHASE
+
+} alarm_seq_state_t;
+
+typedef enum
+{
     ALARM_UI_SELECT,
     ALARM_UI_EDIT_VALUE1,
     ALARM_UI_EDIT_VALUE2,
@@ -56,6 +66,7 @@ typedef enum
 
     ALARM_UI_EDIT_TRIGGER_DELAY,
     ALARM_UI_EDIT_OUTPUT_DELAY,
+    ALARM_UI_EDIT_OUTPUT_DELAY2,
     ALARM_UI_ADVANCED
 
 } alarm_ui_state_t;
@@ -88,7 +99,8 @@ typedef enum
 {
     OUTPUT_DIRECT = 0,
     OUTPUT_ON_DELAY,
-    OUTPUT_OFF_DELAY
+    OUTPUT_OFF_DELAY, 
+    OUTPUT_TIMED_STOP
 
 } output_mode_t;
 
@@ -130,6 +142,7 @@ typedef struct
     uint32_t trigger_delay_ms;
 
     uint32_t output_delay_ms;
+    uint32_t output_delay2_ms;
 
     // =========================
     // RUNTIME
@@ -138,6 +151,11 @@ typedef struct
     bool output;
 
     bool condition_prev;
+    bool sequence_armed;
+
+    alarm_seq_state_t seq_state;
+
+    TickType_t seq_timer_start;
 
     // =========================
     // TRIGGER TIMER

@@ -411,7 +411,10 @@ void lcd_task(void *pv)
                     ALARM_UI_EDIT_TRIGGER_DELAY ||
 
                     snapshot.ui_state ==
-                    ALARM_UI_EDIT_OUTPUT_DELAY
+                    ALARM_UI_EDIT_OUTPUT_DELAY ||
+
+                    snapshot.ui_state ==
+                    ALARM_UI_EDIT_OUTPUT_DELAY2
                 )
                 {
                     // =========================
@@ -508,7 +511,6 @@ void lcd_task(void *pv)
                     );
 
                     }
-
                     // =========================
                     // OUTPUT DELAY
                     // =========================
@@ -530,8 +532,29 @@ void lcd_task(void *pv)
                             blink_state
                         );
                     }
-                }
 
+                    // =========================
+                    // OUTPUT DELAY 2
+                    // =========================
+
+                    else if
+                    (
+                        snapshot.adv_cursor ==
+                        ADV_ITEM_OUTPUT_DELAY2
+                    )
+                    {
+                        lcd_set_cursor(0, 0);
+
+                        lcd_write_string(
+                            "OUT DLY2 MS   "
+                        );
+
+                        render_editor_digits(
+                            &snapshot.editor,
+                            blink_state
+                        );
+                    }
+                }
                 // =============================
                 // NORMAL CONFIG
                 // =============================

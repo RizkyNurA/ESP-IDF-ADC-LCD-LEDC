@@ -171,6 +171,88 @@ static bool alarm_output_update(
 
             return true;
         }
+        // =========================
+        // TIMED STOP
+        // =========================
+
+        case OUTPUT_TIMED_STOP:
+        {
+            // re-arm saat berat keluar threshold
+            if (!trigger_valid)
+            {
+                a->sequence_armed = true;
+            }
+
+            switch (a->seq_state)
+            {
+                case SEQ_IDLE:
+                {
+                    if (
+                        trigger_valid &&
+                        a->sequence_armed
+                    )
+                    {
+                        a->sequence_armed = false;
+
+                        a->seq_state =
+                            SEQ_ON_PHASE;
+
+                        a->seq_timer_start =
+                            now;
+                    }
+
+                    // default ON
+                    return true;
+                }
+
+                case SEQ_ON_PHASE:
+                {
+                    uint32_t elapsed =
+                        pdTICKS_TO_MS(
+                            now -
+                            a->seq_timer_start
+                        );
+
+                    if (
+                        elapsed >=
+                        a->output_delay_ms
+                    )
+                    {
+                        a->seq_state =
+                            SEQ_OFF_PHASE;
+
+                        a->seq_timer_start =
+                            now;
+                    }
+
+                    // tetap ON selama T1
+                    return true;
+                }
+
+                case SEQ_OFF_PHASE:
+                {
+                    uint32_t elapsed =
+                        pdTICKS_TO_MS(
+                            now -
+                            a->seq_timer_start
+                        );
+
+                    if (
+                        elapsed >=
+                        a->output_delay2_ms
+                    )
+                    {
+                        a->seq_state =
+                            SEQ_IDLE;
+                    }
+
+                    // OFF selama T2
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         default:
             return false;
@@ -207,6 +289,9 @@ static void save_alarm_config(
 
     make_nvs_key(key, sizeof(key), "out_dly", idx);
     nvs_save_i32(key, app->alarm[idx].output_delay_ms);
+
+    make_nvs_key(key, sizeof(key), "out_dly2", idx);
+    nvs_save_i32(key, app->alarm[idx].output_delay2_ms);
 }
 
 static void load_alarm_editor(
@@ -454,12 +539,11 @@ static void handle_alarm_config(
         if (
             evt == EVT_RIGHT_LONG &&
             app->adv_cursor <
-            ADV_ITEM_OUTPUT_DELAY
+            (ADV_ITEM_COUNT - 1)
         )
         {
             app->adv_cursor++;
 
-            // load editor
             if (
                 app->adv_cursor ==
                 ADV_ITEM_TRIGGER_DELAY
@@ -488,8 +572,23 @@ static void handle_alarm_config(
                     UI_NAV;
             }
 
+            else if (
+                app->adv_cursor ==
+                ADV_ITEM_OUTPUT_DELAY2
+            )
+            {
+                editor_set_value(
+                    &app->editor,
+                    a->output_delay2_ms
+                );
+
+                app->editor.state =
+                    UI_NAV;
+            }
+
             return;
         }
+    }
 
         // =========================================
         // PREV MENU
@@ -503,7 +602,6 @@ static void handle_alarm_config(
         {
             app->adv_cursor--;
 
-            // load editor
             if (
                 app->adv_cursor ==
                 ADV_ITEM_TRIGGER_DELAY
@@ -612,7 +710,7 @@ static void handle_alarm_config(
                     &app->editor
                 );
         }
-    }
+    
 
     // =====================================================
     // SAVE + NEXT

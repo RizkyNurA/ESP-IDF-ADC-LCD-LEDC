@@ -61,7 +61,8 @@ const char *output_mode_items[] =
 {
     "DIRECT ",
     "ON DEL ",
-    "OFF DEL"
+    "OFF DEL",
+    "T STOP "
 };
 
 /* ===================== MAIN ===================== */
@@ -96,7 +97,7 @@ void app_main(void)
 
         app.alarm[i].output_selector.items = output_mode_items;
 
-        app.alarm[i].output_selector.count = 3;
+        app.alarm[i].output_selector.count = 4;
 
         app.alarm[i].output_selector.selected = 0;
 
@@ -106,6 +107,14 @@ void app_main(void)
         app.alarm[i].trigger_delay_ms = 2000;
 
         app.alarm[i].output_delay_ms = 2000;
+
+        app.alarm[i].output_delay2_ms = 5000;
+
+        app.alarm[i].sequence_armed = true;
+
+        app.alarm[i].seq_state = SEQ_IDLE;
+
+        app.alarm[i].seq_timer_start = 0;
 
         char key[16];
 
@@ -219,8 +228,22 @@ void app_main(void)
 
         app.alarm[i].output_delay_ms =
             nvs_load_i32(key, 0);
-            }
+            
 
+        // =========================
+        // LOAD OUTPUT DELAY 2
+        // =========================
+
+        make_nvs_key(
+            key,
+            sizeof(key),
+            "out_dly2",
+            i
+        );
+
+        app.alarm[i].output_delay2_ms =
+            nvs_load_i32(key, 5000);
+    }
     
 
     /* ===================== RTOS INIT ===================== */
